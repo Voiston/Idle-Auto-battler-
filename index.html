@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0a0d14" />
+  <meta name="description" content="Idle Auto-Battler — Survival Isometric RPG" />
+  <link rel="manifest" href="manifest.json" />
+  <title>GOLEM.EXE — Idle Auto-Battler</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+    :root {
+      --bg: #080b12;
+      --panel: #0d1120;
+      --border: #1a2540;
+      --accent: #00e5ff;
+      --accent2: #ff6b35;
+      --gold: #ffd700;
+      --hp: #22c55e;
+      --danger: #ef4444;
+      --text: #c8d8f0;
+      --muted: #4a5a7a;
+      --glow: 0 0 12px rgba(0,229,255,0.4);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Share Tech Mono', monospace;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* ── HEADER ── */
+    #header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    #header h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 16px;
+      font-weight: 900;
+      color: var(--accent);
+      letter-spacing: 3px;
+      text-shadow: var(--glow);
+    }
+    #wave-info {
+      font-size: 12px;
+      color: var(--gold);
+    }
+    #score-display {
+      font-size: 12px;
+      color: var(--accent2);
+    }
+
+    /* ── LAYOUT ── */
+    #main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── CANVAS AREA ── */
+    #canvas-wrap {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #060911;
+    }
+    #gameCanvas {
+      display: block;
+      image-rendering: pixelated;
+    }
+
+    /* ── OVERLAYS ── */
+    #status-overlay {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      pointer-events: none;
+    }
+    .stat-bar-wrap {
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .stat-label { font-size: 10px; color: var(--muted); width: 24px; }
+    .bar-bg {
+      width: 120px;
+      height: 8px;
+      background: rgba(0,0,0,0.5);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      transition: width 0.2s;
+      border-radius: 2px;
+    }
+    .bar-hp .bar-fill { background: var(--hp); box-shadow: 0 0 6px var(--hp); }
+    .bar-mp .bar-fill { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+    .bar-xp .bar-fill { background: var(--gold); }
+    .stat-val { font-size: 10px; color: var(--text); min-width: 52px; }
+
+    #combat-log {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      width: 240px;
+      max-height: 90px;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .log-line {
+      font-size: 10px;
+      line-height: 1.5;
+      opacity: 0.85;
+      animation: fadeLog 0.3s ease;
+    }
+    .log-dmg { color: var(--accent2); }
+    .log-heal { color: var(--hp); }
+    .log-loot { color: var(--gold); }
+    .log-spell { color: var(--accent); }
+    .log-warn { color: var(--danger); }
+    @keyframes fadeLog { from { opacity:0; transform: translateX(-4px); } }
+
+    /* ── FLOATING DAMAGE NUMBERS ── */
+    .float-number {
+      position: absolute;
+      font-size: 13px;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      pointer-events: none;
+      animation: floatUp 1.2s ease forwards;
+    }
+    @keyframes floatUp {
+      0%   { opacity:1; transform: translateY(0) scale(1); }
+      60%  { opacity:1; transform: translateY(-28px) scale(1.1); }
+      100% { opacity:0; transform: translateY(-48px) scale(0.8); }
+    }
+
+    /* ── RIGHT PANEL ── */
+    #right-panel {
+      width: 220px;
+      background: var(--panel);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    .panel-section {
+      border-bottom: 1px solid var(--border);
+      padding: 10px;
+    }
+    .panel-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10px;
+      color: var(--accent);
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    /* STATS GRID */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+    }
+    .stat-chip {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 6px;
+      font-size: 10px;
+    }
+    .stat-chip span { color: var(--accent); font-weight: bold; }
+
+    /* EQUIPMENT SLOTS */
+    .equip-grid {
+      display: grid;
+      grid-template-areas:
+        ". head ."
+        "arm1 body arm2"
+        ". belt ."
+        ". boots .";
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 3px;
+    }
+    .slot {
+      aspect-ratio: 1;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .slot:hover { border-color: var(--accent); background: rgba(0,229,255,0.05); }
+    .slot.filled { border-color: var(--gold); }
+    .slot.filled::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255,215,0,0.05);
+    }
+    .slot-label { font-size: 8px; color: var(--muted); margin-top: 2px; }
+    .slot[data-slot="head"]  { grid-area: head; }
+    .slot[data-slot="body"]  { grid-area: body; }
+    .slot[data-slot="arm1"]  { grid-area: arm1; }
+    .slot[data-slot="arm2"]  { grid-area: arm2; }
+    .slot[data-slot="belt"]  { grid-area: belt; }
+    .slot[data-slot="boots"] { grid-area: boots; }
+
+    /* INVENTORY */
+    #inventory-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 3px;
+    }
+    .inv-item {
+      aspect-ratio: 1;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .inv-item:hover { border-color: var(--accent2); background: rgba(255,107,53,0.1); }
+    .inv-item.common  { border-color: #555; }
+    .inv-item.uncommon{ border-color: #22c55e; }
+    .inv-item.rare    { border-color: #3b82f6; box-shadow: 0 0 6px rgba(59,130,246,0.3); }
+    .inv-item.epic    { border-color: #a855f7; box-shadow: 0 0 8px rgba(168,85,247,0.4); }
+    .rarity-dot {
+      position: absolute;
+      bottom: 2px; right: 2px;
+      width: 5px; height: 5px;
+      border-radius: 50%;
+    }
+    .common .rarity-dot  { background: #888; }
+    .uncommon .rarity-dot{ background: #22c55e; }
+    .rare .rarity-dot    { background: #3b82f6; }
+    .epic .rarity-dot    { background: #a855f7; }
+
+    #auto-sell-btn {
+      width: 100%;
+      margin-top: 6px;
+      padding: 6px;
+      background: transparent;
+      border: 1px solid var(--accent2);
+      color: var(--accent2);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: all 0.2s;
+      letter-spacing: 1px;
+    }
+    #auto-sell-btn:hover { background: rgba(255,107,53,0.15); }
+
+    /* SPELLS */
+    #spells-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .spell-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 5px 7px;
+      font-size: 10px;
+    }
+    .spell-icon { font-size: 16px; }
+    .spell-info { flex: 1; }
+    .spell-name { color: var(--accent); }
+    .spell-desc { color: var(--muted); font-size: 9px; }
+    .spell-cd {
+      font-size: 9px;
+      color: var(--gold);
+      min-width: 32px;
+      text-align: right;
+    }
+
+    /* GOLD */
+    #gold-display {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 18px;
+      color: var(--gold);
+      text-align: center;
+      text-shadow: 0 0 12px rgba(255,215,0,0.5);
+    }
+    #gold-rate { font-size: 9px; color: var(--muted); text-align: center; margin-top: 2px; }
+
+    /* TOOLTIP */
+    #tooltip {
+      position: fixed;
+      z-index: 999;
+      background: var(--panel);
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      padding: 8px 10px;
+      font-size: 10px;
+      max-width: 160px;
+      pointer-events: none;
+      display: none;
+      box-shadow: var(--glow);
+    }
+    #tooltip .tt-name { color: var(--accent); font-size: 12px; margin-bottom: 4px; }
+    #tooltip .tt-stat { color: var(--text); }
+    #tooltip .tt-rarity { font-size: 9px; margin-top: 3px; }
+    #tooltip .tt-rarity.common  { color: #888; }
+    #tooltip .tt-rarity.uncommon{ color: #22c55e; }
+    #tooltip .tt-rarity.rare    { color: #3b82f6; }
+    #tooltip .tt-rarity.epic    { color: #a855f7; }
+
+    /* WAVE NOTIFICATION */
+    #wave-notif {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%,-50%);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--accent);
+      text-shadow: 0 0 30px var(--accent), 0 0 60px rgba(0,229,255,0.3);
+      pointer-events: none;
+      opacity: 0;
+      letter-spacing: 4px;
+      white-space: nowrap;
+    }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  </style>
+</head>
+<body>
+
+<div id="header">
+  <h1>⬡ GOLEM.EXE</h1>
+  <div id="wave-info">WAVE <span id="wave-num">1</span> — <span id="enemy-count">0</span> ennemis</div>
+  <div id="score-display">SCORE: <span id="score-val">0</span></div>
+</div>
+
+<div id="main">
+  <div id="canvas-wrap">
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="status-overlay">
+      <div class="stat-bar-wrap">
+        <div class="stat-label">HP</div>
+        <div class="bar-bg bar-hp"><div class="bar-fill" id="bar-hp" style="width:100%"></div></div>
+        <div class="stat-val" id="val-hp">100/100</div>
+      </div>
+      <div class="stat-bar-wrap">
+        <div class="stat-label">MP</div>
+        <div class="bar-bg bar-mp"><div class="bar-fill" id="bar-mp" style="width:100%"></div></div>
+        <div class="stat-val" id="val-mp">50/50</div>
+      </div>
+      <div class="stat-bar-wrap">
+        <div class="stat-label">XP</div>
+        <div class="bar-bg bar-xp"><div class="bar-fill" id="bar-xp" style="width:0%"></div></div>
+        <div class="stat-val" id="val-xp">LVL 1</div>
+      </div>
+    </div>
+
+    <div id="combat-log"></div>
+    <div id="wave-notif"></div>
+  </div>
+
+  <div id="right-panel">
+    <div class="panel-section">
+      <div class="panel-title">⬡ Gold</div>
+      <div id="gold-display">0 G</div>
+      <div id="gold-rate">+0 G/kill</div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-title">⬡ Stats</div>
+      <div class="stats-grid">
+        <div class="stat-chip">STR <span id="s-str">10</span></div>
+        <div class="stat-chip">INT <span id="s-int">8</span></div>
+        <div class="stat-chip">SPD <span id="s-spd">5</span></div>
+        <div class="stat-chip">DEF <span id="s-def">3</span></div>
+        <div class="stat-chip">ATK <span id="s-atk">12</span></div>
+        <div class="stat-chip">CRIT <span id="s-crit">5</span>%</div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-title">⬡ Équipement</div>
+      <div class="equip-grid">
+        <div class="slot" data-slot="head">⬡<div class="slot-label">TÊTE</div></div>
+        <div class="slot" data-slot="body">⬡<div class="slot-label">CORPS</div></div>
+        <div class="slot" data-slot="arm1">⬡<div class="slot-label">BRAS G</div></div>
+        <div class="slot" data-slot="arm2">⬡<div class="slot-label">BRAS D</div></div>
+        <div class="slot" data-slot="belt">⬡<div class="slot-label">CEIN.</div></div>
+        <div class="slot" data-slot="boots">⬡<div class="slot-label">BOTTES</div></div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-title">⬡ Inventaire</div>
+      <div id="inventory-grid"></div>
+      <button id="auto-sell-btn">⟳ AUTO-VENTE COMMUN</button>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-title">⬡ Sorts</div>
+      <div id="spells-list">
+        <div class="spell-chip">
+          <div class="spell-icon">🔩</div>
+          <div class="spell-info">
+            <div class="spell-name">Frappe Basique</div>
+            <div class="spell-desc">Auto-attaque physique</div>
+          </div>
+          <div class="spell-cd">PASSIF</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="tooltip">
+  <div class="tt-name" id="tt-name"></div>
+  <div class="tt-stat" id="tt-stat"></div>
+  <div class="tt-rarity" id="tt-rarity"></div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+//  GOLEM.EXE — Idle Auto-Battler Engine v1.0
+// ════════════════════════════════════════════════════════════════
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// ── Resize Canvas ──────────────────────────────────────────────
+function resizeCanvas() {
+  const wrap = document.getElementById('canvas-wrap');
+  canvas.width  = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+}
+window.addEventListener('resize', () => { resizeCanvas(); });
+resizeCanvas();
+
+// ── Constants ─────────────────────────────────────────────────
+const ISO = {
+  tileW: 64, tileH: 32,
+  cols: 18, rows: 18,
+  toScreen(col, row) {
+    return {
+      x: canvas.width/2 + (col - row) * this.tileW/2,
+      y: 60            + (col + row) * this.tileH/2
+    };
+  }
+};
+
+const COLORS = {
+  golem:   { body:'#4a7aff', core:'#00e5ff', joint:'#1a3a8f', shadow:'rgba(0,0,0,0.4)' },
+  grunt:   { body:'#c0392b', eye:'#ff6b35',  shadow:'rgba(0,0,0,0.4)' },
+  brute:   { body:'#7d3c98', eye:'#e74c3c',  shadow:'rgba(0,0,0,0.4)' },
+  slime:   { body:'#27ae60', eye:'#a9dfbf',  shadow:'rgba(0,0,0,0.4)' },
+  tile:    { base:'#0d1f3a', edge1:'#152a4a', edge2:'#0a1628', hover:'#1a3050' },
+  grid:    '#1a2540',
+  particle:'#00e5ff',
+};
+
+// ── State ──────────────────────────────────────────────────────
+const state = {
+  golem: {
+    // World position (col/row fractional)
+    col: 9, row: 9,
+    hp: 100, maxHp: 100,
+    mp: 50,  maxMp: 50,
+    xp: 0, xpNext: 100, level: 1,
+    str: 10, int: 8, spd: 5, def: 3,
+    atkDmg: 12, atkSpd: 1.2, critChance: 5,
+    atkTimer: 0, atkRange: 1.6,
+    gold: 0,
+    state: 'patrol', // patrol | chase | flee | attack
+    fleeTimer: 0,
+    target: null,
+    patrol: { col: 9, row: 9 },
+    patrolTimer: 0,
+    facing: 1, // 1 = right, -1 = left
+    animFrame: 0, animTimer: 0,
+    hitFlash: 0,
+    moveQueue: [],
+    velocity: { x: 0, y: 0 },
+    equipped: { head:null, body:null, arm1:null, arm2:null, belt:null, boots:null },
+  },
+  enemies: [],
+  particles: [],
+  floatNums: [],
+  inventory: [],
+  spells: [{ id:'basic', name:'Frappe Basique', icon:'🔩', desc:'Auto-attaque', passive:true }],
+  wave: 1,
+  score: 0,
+  waveTimer: 0,
+  waveDelay: 5,
+  waveActive: false,
+  totalKills: 0,
+};
+
+// ── Enemy Templates ────────────────────────────────────────────
+const ENEMY_TYPES = {
+  grunt: {
+    name: 'Grunt', icon: '💀',
+    hp: 30, maxHp: 30, dmg: 5, spd: 0.9, range: 1.2,
+    xp: 15, gold: 3, threat: 1,
+    drawFn: drawGrunt,
+  },
+  brute: {
+    name: 'Brute', icon: '👹',
+    hp: 80, maxHp: 80, dmg: 14, spd: 0.55, range: 1.5,
+    xp: 40, gold: 8, threat: 3,
+    drawFn: drawBrute,
+  },
+  slime: {
+    name: 'Slime', icon: '🟢',
+    hp: 20, maxHp: 20, dmg: 3, spd: 1.1, range: 1.0,
+    xp: 10, gold: 2, threat: 1,
+    drawFn: drawSlime,
+  },
+};
+
+// ── Item Templates ─────────────────────────────────────────────
+const ITEM_POOL = [
+  { id:'helmet_iron',  name:'Heaume de Fer',   icon:'⛑️',  slot:'head',  rarity:'common',   stats:{def:2} },
+  { id:'armor_stone',  name:'Armure de Pierre',icon:'🪨',  slot:'body',  rarity:'common',   stats:{def:4,str:1} },
+  { id:'gloves_sharp', name:'Gants Tranchants',icon:'🥊',  slot:'arm1',  rarity:'uncommon', stats:{str:3,atk:4} },
+  { id:'belt_speed',   name:'Ceinture Rapide', icon:'🎗️',  slot:'belt',  rarity:'uncommon', stats:{spd:2} },
+  { id:'boots_swift',  name:'Bottes Agiles',   icon:'👟',  slot:'boots', rarity:'rare',     stats:{spd:4,def:1} },
+  { id:'sword_rune',   name:'Épée Runique',    icon:'⚔️',  slot:'arm2',  rarity:'rare',     stats:{str:6,atk:8,crit:5} },
+  { id:'crown_mage',   name:'Couronne Mage',   icon:'👑',  slot:'head',  rarity:'epic',     stats:{int:10,mp:20} },
+];
+
+const RARITY_WEIGHTS = { common:55, uncommon:28, rare:13, epic:4 };
+
+// ── Particle System ────────────────────────────────────────────
+function spawnParticles(x, y, count, color, speed=2, life=0.6) {
+  for (let i=0; i<count; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const s = Math.random() * speed + 0.5;
+    state.particles.push({
+      x, y,
+      vx: Math.cos(a)*s, vy: Math.sin(a)*s,
+      life, maxLife: life,
+      color, size: Math.random()*3+1,
+    });
+  }
+}
+
+// ── Float Number ───────────────────────────────────────────────
+function spawnFloat(x, y, text, color) {
+  const el = document.createElement('div');
+  el.className = 'float-number';
+  el.style.cssText = `left:${x}px;top:${y}px;color:${color};`;
+  el.textContent = text;
+  document.getElementById('canvas-wrap').appendChild(el);
+  setTimeout(() => el.remove(), 1200);
+}
+
+// ── Combat Log ─────────────────────────────────────────────────
+const combatLog = document.getElementById('combat-log');
+const logLines = [];
+function addLog(msg, cls='') {
+  logLines.push({msg, cls});
+  if (logLines.length > 6) logLines.shift();
+  combatLog.innerHTML = logLines.map(l =>
+    `<div class="log-line ${l.cls}">${l.msg}</div>`
+  ).join('');
+}
+
+// ── Wave System ────────────────────────────────────────────────
+function spawnWave(wave) {
+  const count = 3 + wave * 2;
+  const types = ['grunt','grunt','slime','brute'];
+  for (let i=0; i<count; i++) {
+    const type = types[Math.min(Math.floor(Math.random()*(1+wave*0.4)), types.length-1)];
+    const tmpl = ENEMY_TYPES[type];
+    // Spawn on edges
+    let col, row;
+    const edge = Math.floor(Math.random()*4);
+    if (edge===0)      { col=0;            row=Math.random()*ISO.rows; }
+    else if (edge===1) { col=ISO.cols-1;   row=Math.random()*ISO.rows; }
+    else if (edge===2) { col=Math.random()*ISO.cols; row=0; }
+    else               { col=Math.random()*ISO.cols; row=ISO.rows-1; }
+
+    const scale = 1 + wave * 0.08;
+    state.enemies.push({
+      id: Date.now()+i, type,
+      col, row,
+      hp: Math.floor(tmpl.hp * scale),
+      maxHp: Math.floor(tmpl.hp * scale),
+      dmg: Math.floor(tmpl.dmg * scale),
+      spd: tmpl.spd, range: tmpl.range,
+      xp: tmpl.xp, gold: tmpl.gold, threat: tmpl.threat,
+      atkTimer: Math.random()*2,
+      hitFlash: 0, animTimer: 0, animFrame: 0,
+      drawFn: tmpl.drawFn,
+      name: tmpl.name,
+      facing: 1,
+    });
+  }
+  state.waveActive = true;
+  showWaveNotif(`VAGUE ${wave}`);
+  addLog(`⚡ Vague ${wave} — ${count} ennemis approchent!`, 'log-warn');
+}
+
+function showWaveNotif(text) {
+  const el = document.getElementById('wave-notif');
+  el.textContent = text;
+  el.style.animation = 'none';
+  el.offsetHeight; // reflow
+  el.style.animation = 'waveFlash 2s ease forwards';
+}
+
+// Inject keyframe
+const styleSheet = document.createElement('style');
+styleSheet.textContent = `
+@keyframes waveFlash {
+  0%   { opacity:0; transform: translate(-50%,-50%) scale(0.5); }
+  20%  { opacity:1; transform: translate(-50%,-50%) scale(1.05); }
+  70%  { opacity:1; transform: translate(-50%,-50%) scale(1); }
+  100% { opacity:0; transform: translate(-50%,-50%) scale(1.1); }
+}`;
+document.head.appendChild(styleSheet);
+
+// ── AI: Golem Behaviour ────────────────────────────────────────
+function updateGolem(dt) {
+  const G = state.golem;
+  G.animTimer += dt;
+  if (G.animTimer > 0.25) { G.animTimer=0; G.animFrame=(G.animFrame+1)%4; }
+  if (G.hitFlash > 0) G.hitFlash -= dt * 3;
+
+  // Count nearby threats
+  const nearbyEnemies = state.enemies.filter(e => dist(G,e) < 4);
+  const totalThreat   = nearbyEnemies.reduce((s,e)=>s+e.threat,0);
+  const closest       = nearbyEnemies.sort((a,b)=>dist(G,a)-dist(G,b))[0];
+
+  // ── State machine ──
+  if (G.hp < G.maxHp * 0.3 && totalThreat >= 3) {
+    G.state = 'flee';
+    G.fleeTimer = 3.0;
+  }
+
+  if (G.state === 'flee') {
+    G.fleeTimer -= dt;
+    if (G.fleeTimer <= 0 || totalThreat === 0) G.state = 'patrol';
+    if (closest) fleeFrom(G, closest, dt);
+    // Regen a bit while fleeing
+    G.hp = Math.min(G.maxHp, G.hp + dt * 2);
+  } else if (totalThreat === 0) {
+    G.state = 'patrol';
+    patrolBehavior(G, dt);
+    G.hp = Math.min(G.maxHp, G.hp + dt * 1.5); // passive regen
+  } else if (closest && dist(G, closest) <= G.atkRange) {
+    G.state = 'attack';
+    G.target = closest;
+    attackBehavior(G, closest, dt);
+  } else if (closest) {
+    // Only chase if not overwhelmed
+    if (totalThreat <= 4) {
+      G.state = 'chase';
+      chaseTo(G, closest, dt);
+    } else {
+      G.state = 'flee';
+      G.fleeTimer = 2.0;
+      fleeFrom(G, closest, dt);
+    }
+  }
+
+  // Attack timer
+  G.atkTimer = Math.max(0, G.atkTimer - dt);
+
+  // Clamp to grid
+  G.col = Math.max(0.3, Math.min(ISO.cols-0.3, G.col));
+  G.row = Math.max(0.3, Math.min(ISO.rows-0.3, G.row));
+}
+
+function dist(a, b) {
+  return Math.sqrt((a.col-b.col)**2+(a.row-b.row)**2);
+}
+
+function chaseTo(G, target, dt) {
+  const d = dist(G, target);
+  if (d < 0.1) return;
+  const speed = (0.8 + G.spd * 0.08) * dt;
+  const factor = Math.min(speed/d, 1);
+  const dc = (target.col - G.col) * factor;
+  const dr = (target.row - G.row) * factor;
+  G.col += dc; G.row += dr;
+  if (dc !== 0) G.facing = dc > 0 ? 1 : -1;
+}
+
+function fleeFrom(G, threat, dt) {
+  const d = dist(G, threat);
+  if (d < 0.1) return;
+  const speed = (1.0 + G.spd * 0.1) * dt;
+  const factor = speed / d;
+  const dc = -(threat.col - G.col) * factor;
+  const dr = -(threat.row - G.row) * factor;
+  G.col += dc; G.row += dr;
+  // Try to go toward center
+  const toCentC = (9 - G.col) * 0.02;
+  const toCentR = (9 - G.row) * 0.02;
+  G.col += toCentC; G.row += toCentR;
+}
+
+function patrolBehavior(G, dt) {
+  G.patrolTimer -= dt;
+  if (G.patrolTimer <= 0) {
+    G.patrol.col = 2 + Math.random() * (ISO.cols-4);
+    G.patrol.row = 2 + Math.random() * (ISO.rows-4);
+    G.patrolTimer = 3 + Math.random() * 4;
+  }
+  const d = dist(G, G.patrol);
+  if (d > 0.3) {
+    const speed = 0.4 * dt;
+    const factor = Math.min(speed/d, 1);
+    const dc = (G.patrol.col - G.col) * factor;
+    const dr = (G.patrol.row - G.row) * factor;
+    G.col += dc; G.row += dr;
+    if (dc !== 0) G.facing = dc > 0 ? 1 : -1;
+  }
+}
+
+function attackBehavior(G, enemy, dt) {
+  if (G.atkTimer <= 0) {
+    // Face the enemy
+    G.facing = enemy.col > G.col ? 1 : -1;
+    // Calculate damage
+    let dmg = G.atkDmg + Math.floor(G.str * 0.8);
+    const isCrit = Math.random()*100 < G.critChance;
+    if (isCrit) { dmg = Math.floor(dmg * 1.8); }
+    enemy.hp -= dmg;
+    enemy.hitFlash = 1.0;
+
+    const pos = ISO.toScreen(enemy.col, enemy.row);
+    spawnFloat(pos.x, pos.y - 20, isCrit ? `⚡${dmg}!` : `-${dmg}`, isCrit ? '#ffd700' : '#ff6b35');
+    spawnParticles(pos.x, pos.y, isCrit?10:5, '#ff6b35', 3);
+
+    if (isCrit) addLog(`⚡ CRITIQUE! ${enemy.name} prend ${dmg} dégâts!`, 'log-dmg');
+    G.atkTimer = 1 / G.atkSpd;
+
+    // Enemy dies
+    if (enemy.hp <= 0) {
+      killEnemy(enemy);
+    }
+  }
+}
+
+function killEnemy(enemy) {
+  const pos = ISO.toScreen(enemy.col, enemy.row);
+  spawnParticles(pos.x, pos.y, 15, '#ff6b35', 4, 0.8);
+  spawnParticles(pos.x, pos.y, 8, '#ffd700', 3, 0.6);
+
+  state.golem.xp += enemy.xp;
+  state.golem.gold += enemy.gold;
+  state.score += enemy.xp * 2;
+  state.totalKills++;
+
+  addLog(`💀 ${enemy.name} éliminé! +${enemy.xp}XP +${enemy.gold}G`, 'log-loot');
+
+  // Chance to drop item
+  if (Math.random() < 0.25) dropItem(pos.x, pos.y);
+
+  // Remove enemy
+  state.enemies = state.enemies.filter(e => e !== enemy);
+
+  // Level up check
+  checkLevelUp();
+  updateUI();
+}
+
+function checkLevelUp() {
+  const G = state.golem;
+  if (G.xp >= G.xpNext) {
+    G.level++;
+    G.xp -= G.xpNext;
+    G.xpNext = Math.floor(G.xpNext * 1.5);
+    G.maxHp += 15; G.hp = G.maxHp;
+    G.str += 2; G.int += 1; G.def += 1; G.spd += 0.3;
+    G.atkDmg += 3; G.atkSpd += 0.05;
+    addLog(`✨ NIVEAU ${G.level}! Stats améliorées!`, 'log-spell');
+    const pos = ISO.toScreen(G.col, G.row);
+    spawnParticles(pos.x, pos.y, 20, '#00e5ff', 4, 1.0);
+    spawnFloat(pos.x, pos.y-30, `LEVEL ${G.level}!`, '#00e5ff');
+  }
+}
+
+// ── Enemy AI ───────────────────────────────────────────────────
+function updateEnemies(dt) {
+  const G = state.golem;
+  for (const e of state.enemies) {
+    e.animTimer += dt; e.atkTimer -= dt;
+    if (e.animTimer > 0.3) { e.animTimer=0; e.animFrame=(e.animFrame+1)%4; }
+    if (e.hitFlash > 0) e.hitFlash -= dt * 4;
+
+    const d = dist(e, G);
+    if (d > e.range) {
+      // Move toward golem
+      const speed = e.spd * dt;
+      const factor = Math.min(speed/d, 1);
+      const dc = (G.col - e.col) * factor;
+      const dr = (G.row - e.row) * factor;
+      e.col += dc; e.row += dr;
+      e.facing = dc > 0 ? 1 : -1;
+    } else {
+      // Attack golem
+      e.facing = G.col > e.col ? 1 : -1;
+      if (e.atkTimer <= 0) {
+        const dmg = Math.max(1, e.dmg - G.def);
+        G.hp -= dmg;
+        G.hitFlash = 1.0;
+        e.atkTimer = 1.2 / e.spd;
+        spawnFloat(
+          ISO.toScreen(G.col, G.row).x,
+          ISO.toScreen(G.col, G.row).y - 15,
+          `-${dmg}`, '#ef4444'
+        );
+        spawnParticles(ISO.toScreen(G.col,G.row).x, ISO.toScreen(G.col,G.row).y, 4, '#ef4444', 2);
+        if (G.hp <= 0) { G.hp=0; handleDeath(); }
+      }
+    }
+  }
+}
+
+function handleDeath() {
+  addLog('💔 Le Golem est tombé... Résurrection en 3s', 'log-warn');
+  setTimeout(() => {
+    state.golem.hp = state.golem.maxHp * 0.5;
+    state.golem.col = 9; state.golem.row = 9;
+    state.enemies = [];
+    addLog('⚡ Golem ressuscité!', 'log-spell');
+  }, 3000);
+}
+
+// ── Loot ───────────────────────────────────────────────────────
+function dropItem(x, y) {
+  // Weighted rarity roll
+  const roll = Math.random()*100;
+  let rarity = 'common';
+  let acc = 0;
+  for (const [r, w] of Object.entries(RARITY_WEIGHTS)) {
+    acc += w;
+    if (roll < acc) { rarity = r; break; }
+  }
+  const pool = ITEM_POOL.filter(i => i.rarity === rarity);
+  if (!pool.length) return;
+  const tmpl = pool[Math.floor(Math.random()*pool.length)];
+  const item = { ...tmpl, uid: Date.now()+Math.random() };
+
+  if (state.inventory.length < 24) {
+    state.inventory.push(item);
+    addLog(`📦 ${tmpl.name} (${rarity}) trouvé!`, 'log-loot');
+    spawnFloat(x, y-20, tmpl.icon, '#ffd700');
+  }
+  renderInventory();
+}
+
+// ── Particles ──────────────────────────────────────────────────
+function updateParticles(dt) {
+  for (let i=state.particles.length-1; i>=0; i--) {
+    const p = state.particles[i];
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.05;
+    p.life -= dt;
+    if (p.life <= 0) state.particles.splice(i,1);
+  }
+}
+
+// ── DRAW: Isometric Grid ───────────────────────────────────────
+function drawGrid() {
+  for (let c=0; c<ISO.cols; c++) {
+    for (let r=0; r<ISO.rows; r++) {
+      const {x,y} = ISO.toScreen(c,r);
+      const tw = ISO.tileW/2, th = ISO.tileH/2;
+
+      // Checkerboard variation
+      const dark = (c+r)%2===0;
+      const base  = dark ? COLORS.tile.base  : COLORS.tile.edge1;
+      const side1 = dark ? COLORS.tile.edge2 : COLORS.tile.base;
+      const side2 = dark ? COLORS.tile.edge1 : COLORS.tile.edge2;
+
+      // Top face
+      ctx.beginPath();
+      ctx.moveTo(x, y-th);
+      ctx.lineTo(x+tw, y);
+      ctx.lineTo(x, y+th);
+      ctx.lineTo(x-tw, y);
+      ctx.closePath();
+      ctx.fillStyle = base;
+      ctx.fill();
+      ctx.strokeStyle = COLORS.grid;
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    }
+  }
+}
+
+// ── DRAW: Shadow ───────────────────────────────────────────────
+function drawShadow(x, y, r=18) {
+  ctx.save();
+  ctx.globalAlpha = 0.35;
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.ellipse(x, y+4, r, r*0.4, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// ── DRAW: HP Bar ───────────────────────────────────────────────
+function drawHpBar(x, y, current, max, w=32) {
+  const h = 4;
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(x-w/2, y-h-1, w, h);
+  const frac = Math.max(0, current/max);
+  const col = frac > 0.5 ? '#22c55e' : frac > 0.25 ? '#f59e0b' : '#ef4444';
+  ctx.fillStyle = col;
+  ctx.fillRect(x-w/2, y-h-1, w*frac, h);
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 0.5;
+  ctx.strokeRect(x-w/2, y-h-1, w, h);
+}
+
+// ── DRAW: Golem ────────────────────────────────────────────────
+function drawGolem(x, y) {
+  const G = state.golem;
+  const bob = Math.sin(G.animFrame * Math.PI * 0.5) * 1.5;
+  const flash = G.hitFlash > 0;
+  ctx.save();
+  ctx.translate(x, y + bob);
+
+  // State indicator ring
+  const stateColor = { patrol:'#4a7aff', chase:'#ffd700', flee:'#ef4444', attack:'#ff6b35' };
+  ctx.beginPath();
+  ctx.arc(0, -28, 20, 0, Math.PI*2);
+  ctx.strokeStyle = (stateColor[G.state] || '#fff') + '55';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  if (flash) { ctx.globalAlpha = 0.5 + G.hitFlash * 0.5; ctx.globalCompositeOperation = 'lighter'; }
+
+  // Shadow
+  drawShadow(0, 8);
+
+  // Body — main block
+  ctx.fillStyle = COLORS.golem.body;
+  ctx.fillRect(-10, -20, 20, 22);
+  // Body highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.fillRect(-8, -18, 8, 10);
+  // Core crystal
+  ctx.fillStyle = COLORS.golem.core;
+  ctx.fillRect(-5, -14, 10, 10);
+  ctx.globalAlpha = flash ? 0.5 : 0.6 + Math.sin(Date.now()*0.003)*0.2;
+  ctx.fillStyle = 'rgba(0,229,255,0.5)';
+  ctx.fillRect(-4, -13, 8, 8);
+  ctx.globalAlpha = flash ? 0.5 : 1;
+
+  // Head
+  ctx.fillStyle = COLORS.golem.body;
+  ctx.fillRect(-8, -32, 16, 13);
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.fillRect(-7, -31, 7, 5);
+  // Eyes
+  ctx.fillStyle = COLORS.golem.core;
+  const eyeGlow = 0.7 + Math.sin(Date.now()*0.004)*0.3;
+  ctx.globalAlpha = flash ? 1 : eyeGlow;
+  ctx.fillRect(-6, -26, 4, 4);
+  ctx.fillRect(2,  -26, 4, 4);
+  ctx.globalAlpha = 1;
+
+  // Arms (with bob offset)
+  ctx.fillStyle = COLORS.golem.joint;
+  const armSwing = Math.sin(G.animFrame*Math.PI*0.5) * 2;
+  ctx.fillRect(-16, -18+armSwing, 6, 14);   // left arm
+  ctx.fillRect(10,  -18-armSwing, 6, 14);   // right arm
+
+  // Joints
+  ctx.fillStyle = COLORS.golem.joint;
+  ctx.fillRect(-9,  -2, 4, 6);  // left leg
+  ctx.fillRect(5,   -2, 4, 6);  // right leg
+  // Feet
+  ctx.fillStyle = '#2a5acc';
+  const lStep = G.animFrame%2===0?1:0, rStep = G.animFrame%2===0?0:1;
+  ctx.fillRect(-10, 3+lStep, 6, 4);
+  ctx.fillRect(4,   3+rStep, 6, 4);
+
+  ctx.restore();
+
+  // HP bar above
+  drawHpBar(x, y-40, G.hp, G.maxHp, 40);
+
+  // State label
+  ctx.fillStyle = stateColor[G.state]+'bb';
+  ctx.font = '8px Share Tech Mono';
+  ctx.textAlign = 'center';
+  ctx.fillText(G.state.toUpperCase(), x, y-48);
+}
+
+// ── DRAW: Grunt ────────────────────────────────────────────────
+function drawGrunt(ctx, x, y, e) {
+  const bob = Math.sin(e.animFrame * Math.PI*0.5)*1.5;
+  ctx.save();
+  ctx.translate(x, y+bob);
+  if (e.hitFlash>0) { ctx.globalAlpha = 0.5+e.hitFlash*0.5; ctx.globalCompositeOperation='lighter'; }
+  drawShadow(0, 5);
+  ctx.fillStyle = COLORS.grunt.body;
+  ctx.fillRect(-8, -22, 16, 20);
+  ctx.fillStyle = '#8b1a10';
+  ctx.fillRect(-6, -20, 6, 8);
+  // Eyes
+  ctx.fillStyle = COLORS.grunt.eye;
+  ctx.globalAlpha = 0.8+Math.sin(Date.now()*0.006)*0.2;
+  ctx.fillRect(-5, -17, 3, 3);
+  ctx.fillRect(2, -17, 3, 3);
+  ctx.globalAlpha = 1;
+  // Legs
+  ctx.fillStyle = '#7a1208';
+  ctx.fillRect(-7, -3+( e.animFrame%2===0?1:0), 5, 5);
+  ctx.fillRect(2,  -3+(e.animFrame%2===0?0:1), 5, 5);
+  ctx.restore();
+  drawHpBar(x, y-32, e.hp, e.maxHp, 32);
+}
+
+// ── DRAW: Brute ────────────────────────────────────────────────
+function drawBrute(ctx, x, y, e) {
+  const bob = Math.sin(e.animFrame * Math.PI*0.5)*1;
+  ctx.save();
+  ctx.translate(x, y+bob);
+  if (e.hitFlash>0) { ctx.globalAlpha = 0.5+e.hitFlash*0.5; ctx.globalCompositeOperation='lighter'; }
+  drawShadow(0, 6, 24);
+  ctx.fillStyle = COLORS.brute.body;
+  ctx.fillRect(-14, -28, 28, 26);
+  ctx.fillStyle = '#5a2880';
+  ctx.fillRect(-12, -26, 12, 12);
+  ctx.fillStyle = COLORS.brute.eye;
+  ctx.globalAlpha = 0.9+Math.sin(Date.now()*0.005)*0.1;
+  ctx.fillRect(-9, -20, 5, 5);
+  ctx.fillRect(4, -20, 5, 5);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#4a1a70';
+  ctx.fillRect(-16, -20, 5, 18);
+  ctx.fillRect(11, -20, 5, 18);
+  ctx.fillRect(-10, -2+(e.animFrame%2===0?2:0), 7, 7);
+  ctx.fillRect(3, -2+(e.animFrame%2===0?0:2), 7, 7);
+  ctx.restore();
+  drawHpBar(x, y-40, e.hp, e.maxHp, 44);
+}
+
+// ── DRAW: Slime ────────────────────────────────────────────────
+function drawSlime(ctx, x, y, e) {
+  const squish = 0.85 + Math.sin(e.animFrame*Math.PI*0.5)*0.15;
+  ctx.save();
+  ctx.translate(x, y);
+  if (e.hitFlash>0) { ctx.globalAlpha=0.5+e.hitFlash*0.5; ctx.globalCompositeOperation='lighter'; }
+  drawShadow(0, 4, 14);
+  ctx.scale(1, squish);
+  ctx.fillStyle = COLORS.slime.body;
+  ctx.beginPath();
+  ctx.ellipse(0, -8, 12, 10, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.beginPath();
+  ctx.ellipse(-3, -11, 5, 3, -0.3, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = COLORS.slime.eye;
+  ctx.fillRect(-5, -10, 3, 3);
+  ctx.fillRect(2, -10, 3, 3);
+  ctx.restore();
+  drawHpBar(x, y-26, e.hp, e.maxHp, 28);
+}
+
+// ── DRAW: Particles ────────────────────────────────────────────
+function drawParticles() {
+  for (const p of state.particles) {
+    ctx.globalAlpha = p.life / p.maxLife;
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x-p.size/2, p.y-p.size/2, p.size, p.size);
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ── DRAW: Main ─────────────────────────────────────────────────
+// Sort by row+col for isometric depth
+function drawScene() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawGrid();
+
+  // Collect all sprites for depth sort
+  const sprites = [];
+  const G = state.golem;
+  const gPos = ISO.toScreen(G.col, G.row);
+  sprites.push({ depth: G.col+G.row, fn: () => drawGolem(gPos.x, gPos.y) });
+
+  for (const e of state.enemies) {
+    const pos = ISO.toScreen(e.col, e.row);
+    sprites.push({
+      depth: e.col+e.row,
+      fn: () => e.drawFn(ctx, pos.x, pos.y, e)
+    });
+  }
+
+  sprites.sort((a,b) => a.depth-b.depth);
+  for (const s of sprites) s.fn();
+
+  drawParticles();
+}
+
+// ── UI Update ──────────────────────────────────────────────────
+function updateUI() {
+  const G = state.golem;
+  document.getElementById('bar-hp').style.width = (G.hp/G.maxHp*100)+'%';
+  document.getElementById('val-hp').textContent  = `${Math.ceil(G.hp)}/${G.maxHp}`;
+  document.getElementById('bar-mp').style.width  = (G.mp/G.maxMp*100)+'%';
+  document.getElementById('val-mp').textContent  = `${G.mp}/${G.maxMp}`;
+  document.getElementById('bar-xp').style.width  = (G.xp/G.xpNext*100)+'%';
+  document.getElementById('val-xp').textContent  = `LVL ${G.level}`;
+  document.getElementById('gold-display').textContent = G.gold+' G';
+  document.getElementById('wave-num').textContent = state.wave;
+  document.getElementById('enemy-count').textContent = state.enemies.length;
+  document.getElementById('score-val').textContent = state.score.toLocaleString();
+  document.getElementById('s-str').textContent = G.str;
+  document.getElementById('s-int').textContent = G.int;
+  document.getElementById('s-spd').textContent = G.spd.toFixed(1);
+  document.getElementById('s-def').textContent = G.def;
+  document.getElementById('s-atk').textContent = G.atkDmg;
+  document.getElementById('s-crit').textContent = G.critChance;
+}
+
+// ── Inventory Render ───────────────────────────────────────────
+function renderInventory() {
+  const grid = document.getElementById('inventory-grid');
+  const slots = 24;
+  let html = '';
+  for (let i=0; i<slots; i++) {
+    const item = state.inventory[i];
+    if (item) {
+      html += `<div class="inv-item ${item.rarity}" data-idx="${i}"
+        title="${item.name}">
+        ${item.icon}
+        <div class="rarity-dot"></div>
+      </div>`;
+    } else {
+      html += `<div class="inv-item" data-idx="${i}"></div>`;
+    }
+  }
+  grid.innerHTML = html;
+  // Bind tooltip
+  grid.querySelectorAll('.inv-item[data-idx]').forEach(el => {
+    const idx = +el.dataset.idx;
+    const item = state.inventory[idx];
+    if (!item) return;
+    el.addEventListener('mouseenter', (ev) => showTooltip(ev, item));
+    el.addEventListener('mouseleave', hideTooltip);
+  });
+}
+
+// ── Tooltip ────────────────────────────────────────────────────
+const tooltip = document.getElementById('tooltip');
+function showTooltip(ev, item) {
+  tooltip.style.display = 'block';
+  document.getElementById('tt-name').textContent = item.name;
+  const stats = Object.entries(item.stats).map(([k,v])=>`${k.toUpperCase()}: +${v}`).join(' · ');
+  document.getElementById('tt-stat').textContent = stats;
+  const ttRarity = document.getElementById('tt-rarity');
+  ttRarity.textContent = item.rarity.toUpperCase();
+  ttRarity.className = 'tt-rarity '+item.rarity;
+  tooltip.style.left = (ev.clientX+12)+'px';
+  tooltip.style.top  = (ev.clientY-10)+'px';
+}
+function hideTooltip() { tooltip.style.display = 'none'; }
+
+// ── Auto-Sell ──────────────────────────────────────────────────
+document.getElementById('auto-sell-btn').addEventListener('click', () => {
+  const before = state.inventory.length;
+  const sold = state.inventory.filter(i=>i.rarity==='common');
+  const goldEarned = sold.length * 2;
+  state.inventory = state.inventory.filter(i=>i.rarity!=='common');
+  state.golem.gold += goldEarned;
+  addLog(`💰 Auto-vente: ${sold.length} communs vendus pour ${goldEarned} G`, 'log-loot');
+  renderInventory();
+  updateUI();
+});
+
+// ── Game Loop ──────────────────────────────────────────────────
+let lastTime = 0;
+function gameLoop(ts) {
+  const dt = Math.min((ts - lastTime) / 1000, 0.05);
+  lastTime = ts;
+
+  // Wave logic
+  if (!state.waveActive || state.enemies.length === 0) {
+    if (state.waveActive && state.enemies.length === 0) {
+      state.waveActive = false;
+      state.waveTimer = state.waveDelay;
+      addLog(`✅ Vague ${state.wave} terminée! Prochaine dans ${state.waveDelay}s`, 'log-spell');
+      state.wave++;
+    }
+    state.waveTimer -= dt;
+    if (state.waveTimer <= 0 && !state.waveActive) {
+      spawnWave(state.wave);
+    }
+  }
+
+  if (state.golem.hp > 0) {
+    updateGolem(dt);
+    updateEnemies(dt);
+  }
+  updateParticles(dt);
+  drawScene();
+
+  // Update UI every few frames
+  if (Math.floor(ts/100) !== Math.floor((ts-dt*1000)/100)) updateUI();
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ── Init ───────────────────────────────────────────────────────
+function init() {
+  renderInventory();
+  updateUI();
+  addLog('⬡ GOLEM.EXE initialisé — Préparez-vous!', 'log-spell');
+  state.waveTimer = 3;
+  requestAnimationFrame((ts) => { lastTime = ts; gameLoop(ts); });
+}
+
+init();
+
+// ── Save / Load via LocalStorage ───────────────────────────────
+window.addEventListener('beforeunload', () => {
+  const save = {
+    golem: {
+      hp: state.golem.hp, maxHp: state.golem.maxHp,
+      level: state.golem.level, xp: state.golem.xp, xpNext: state.golem.xpNext,
+      gold: state.golem.gold, str: state.golem.str, int: state.golem.int,
+      spd: state.golem.spd, def: state.golem.def, atkDmg: state.golem.atkDmg,
+      critChance: state.golem.critChance, atkSpd: state.golem.atkSpd,
+    },
+    wave: state.wave,
+    score: state.score,
+    inventory: state.inventory,
+  };
+  localStorage.setItem('golemExeSave', JSON.stringify(save));
+});
+
+const savedStr = localStorage.getItem('golemExeSave');
+if (savedStr) {
+  try {
+    const saved = JSON.parse(savedStr);
+    Object.assign(state.golem, saved.golem);
+    state.wave  = saved.wave  || 1;
+    state.score = saved.score || 0;
+    state.inventory = saved.inventory || [];
+    addLog('💾 Partie chargée!', 'log-spell');
+    renderInventory();
+  } catch(e) {}
+}
+</script>
+</body>
+</html>
