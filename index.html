@@ -12,208 +12,180 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
     :root{
-      --bg:#080b12;--panel:#0c1020;--panel2:#0f1626;--border:#1a2540;
-      --accent:#00e5ff;--accent2:#ff6b35;--gold:#ffd700;--hp:#22c55e;
-      --danger:#ef4444;--purple:#a855f7;--text:#c8d8f0;--muted:#4a5a7a;
-      --glow:0 0 12px rgba(0,229,255,0.35);
+      --bg:#06080f;--panel:#0b0e1a;--panel2:#0d1120;--border:#1c2642;
+      --border2:#243050;
+      --accent:#00d4ff;--accent2:#ff5722;--gold:#ffba00;--hp:#00e676;
+      --danger:#f44336;--purple:#ce93d8;--text:#dce8ff;--muted:#46566e;
+      --glow:0 0 14px rgba(0,212,255,0.4);
+      --glow-gold:0 0 10px rgba(255,186,0,0.35);
       --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
-      --hud-h:48px;--strips-h:88px;--handle-h:32px;
+      --hud-h:52px;--strips-h:92px;--handle-h:36px;
+      --radius:6px;
     }
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
     html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;touch-action:none;}
     #app{display:flex;flex-direction:column;height:100%;padding-top:var(--safe-top);padding-bottom:var(--safe-bottom);}
-    /* HUD */
-    #hud-top{flex-shrink:0;height:var(--hud-h);background:var(--panel);border-bottom:1px solid var(--border);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 10px;gap:6px;}
-    #hud-title{font-family:'Orbitron',sans-serif;font-size:12px;font-weight:900;color:var(--accent);letter-spacing:2px;text-shadow:var(--glow);}
-    #hud-wave{text-align:center;font-size:10px;color:var(--gold);white-space:nowrap;}
-    #hud-wave span{font-family:'Orbitron',sans-serif;font-weight:700;}
-    #hud-score{text-align:right;font-size:9px;color:var(--muted);}
-    #hud-score b{color:var(--accent2);font-size:11px;display:block;}
-    /* CANVAS */
-    #canvas-zone{flex:1;position:relative;overflow:hidden;background:#060911;min-height:0;}
+
+    /* ── HUD ── */
+    #hud-top{
+      flex-shrink:0;height:var(--hud-h);
+      background:linear-gradient(180deg,#0f1428 0%,#0b0e1a 100%);
+      border-bottom:1px solid var(--border2);
+      display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 12px;gap:8px;
+      box-shadow:0 2px 16px rgba(0,0,0,.5);
+    }
+    #hud-title{
+      font-family:'Orbitron',sans-serif;font-size:15px;font-weight:900;
+      color:var(--accent);letter-spacing:3px;
+      text-shadow:0 0 18px rgba(0,212,255,.6),0 0 4px rgba(0,212,255,.4);
+    }
+    #hud-title span{color:#fff;opacity:.35;font-size:12px;letter-spacing:0;margin-left:2px;}
+    #hud-wave{
+      text-align:center;font-size:11px;color:var(--gold);white-space:nowrap;
+      padding:3px 10px;border-radius:20px;
+      background:rgba(255,186,0,.07);border:1px solid rgba(255,186,0,.2);
+    }
+    #hud-wave span{font-family:'Orbitron',sans-serif;font-weight:700;font-size:13px;}
+    #hud-score{text-align:right;font-size:10px;color:var(--muted);}
+    #hud-score b{color:var(--accent2);font-size:14px;display:block;font-family:'Orbitron',sans-serif;}
+
+    /* ── CANVAS ── */
+    #canvas-zone{flex:1;position:relative;overflow:hidden;background:#04060e;min-height:0;}
     #gameCanvas{display:block;image-rendering:pixelated;width:100%;height:100%;}
-    #bars-overlay{position:absolute;top:6px;left:6px;pointer-events:none;display:flex;flex-direction:column;gap:3px;}
-    .bar-row{display:flex;align-items:center;gap:4px;}
-    .bar-lbl{font-size:8px;color:var(--muted);width:16px;text-align:right;}
-    .bar-track{width:90px;height:6px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.06);border-radius:2px;overflow:hidden;}
-    .bar-fill{height:100%;border-radius:2px;transition:width .2s;}
-    .bar-hp .bar-fill{background:var(--hp);box-shadow:0 0 4px var(--hp);}
-    .bar-mp .bar-fill{background:var(--accent);box-shadow:0 0 4px var(--accent);}
-    .bar-xp .bar-fill{background:var(--gold);}
-    .bar-txt{font-size:8px;color:var(--text);min-width:40px;}
-    #spell-pips{position:absolute;bottom:6px;left:6px;display:flex;gap:4px;pointer-events:none;}
-    .spell-pip{width:32px;height:32px;border-radius:7px;border:1px solid var(--border);background:rgba(0,0,0,.6);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:15px;position:relative;overflow:hidden;}
-    .spell-pip .pip-cd{position:absolute;bottom:0;left:0;height:3px;background:var(--accent);transition:width .1s linear;}
-    .spell-pip.ready{border-color:var(--accent);box-shadow:0 0 5px rgba(0,229,255,.3);}
-    .spell-pip .pip-lbl{font-size:6px;color:var(--muted);line-height:1;}
-    #state-badge{position:absolute;top:6px;right:6px;font-family:'Orbitron',sans-serif;font-size:8px;font-weight:700;padding:3px 6px;border-radius:10px;border:1px solid currentColor;pointer-events:none;letter-spacing:1px;transition:color .3s,border-color .3s,background .3s;}
-    #combat-log{position:absolute;bottom:6px;right:6px;width:180px;max-height:54px;overflow:hidden;pointer-events:none;text-align:right;}
-    .log-line{font-size:8px;line-height:1.5;opacity:.9;animation:fadeIn .2s ease;text-shadow:0 1px 3px rgba(0,0,0,.95);}
+
+    /* Bars overlay — glassmorphism card */
+    #bars-overlay{
+      position:absolute;top:8px;left:8px;pointer-events:none;
+      background:rgba(6,8,15,.65);backdrop-filter:blur(8px);
+      border:1px solid rgba(255,255,255,.07);border-radius:10px;
+      padding:7px 10px;display:flex;flex-direction:column;gap:5px;
+    }
+    .bar-row{display:flex;align-items:center;gap:6px;}
+    .bar-lbl{font-size:9px;color:var(--muted);width:16px;text-align:right;letter-spacing:.5px;}
+    .bar-track{width:96px;height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;}
+    .bar-fill{height:100%;border-radius:3px;transition:width .25s;}
+    .bar-hp  .bar-fill{background:linear-gradient(90deg,#00c853,#00e676);box-shadow:0 0 6px rgba(0,230,118,.5);}
+    .bar-mp  .bar-fill{background:linear-gradient(90deg,#0091ea,#00d4ff);box-shadow:0 0 6px rgba(0,212,255,.5);}
+    .bar-xp  .bar-fill{background:linear-gradient(90deg,#e65100,#ffba00);}
+    .bar-txt{font-size:9px;color:var(--text);min-width:42px;opacity:.8;}
+
+    /* Spell pips */
+    #spell-pips{position:absolute;bottom:8px;left:8px;display:flex;gap:5px;pointer-events:none;}
+    .spell-pip{
+      width:36px;height:36px;border-radius:9px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(6,8,15,.75);backdrop-filter:blur(6px);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      font-size:16px;position:relative;overflow:hidden;
+      transition:border-color .2s,box-shadow .2s;
+    }
+    .spell-pip .pip-cd{position:absolute;bottom:0;left:0;height:3px;background:linear-gradient(90deg,var(--accent),#80eaff);transition:width .1s linear;border-radius:0 2px 2px 0;}
+    .spell-pip.ready{border-color:var(--accent);box-shadow:0 0 8px rgba(0,212,255,.4),inset 0 0 8px rgba(0,212,255,.06);}
+    .spell-pip .pip-lbl{font-size:7px;color:var(--muted);line-height:1;margin-top:1px;}
+
+    /* State badge */
+    #state-badge{
+      position:absolute;top:8px;right:8px;font-family:'Orbitron',sans-serif;
+      font-size:9px;font-weight:700;padding:4px 9px;border-radius:12px;
+      border:1px solid currentColor;pointer-events:none;letter-spacing:1.5px;
+      transition:color .3s,border-color .3s,background .3s;
+      backdrop-filter:blur(6px);
+    }
+
+    /* Combat log */
+    #combat-log{position:absolute;bottom:8px;right:8px;width:190px;max-height:66px;overflow:hidden;pointer-events:none;text-align:right;}
+    .log-line{font-size:10px;line-height:1.55;opacity:.92;animation:fadeIn .2s ease;text-shadow:0 1px 4px rgba(0,0,0,.95);}
     .log-dmg{color:var(--accent2)}.log-heal{color:var(--hp)}.log-loot{color:var(--gold)}.log-spell{color:var(--accent)}.log-warn{color:var(--danger)}
-    @keyframes fadeIn{from{opacity:0;transform:translateX(4px)}}
-    #wave-notif{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Orbitron',sans-serif;font-size:20px;font-weight:900;color:var(--accent);text-shadow:0 0 20px var(--accent);pointer-events:none;opacity:0;letter-spacing:3px;white-space:nowrap;}
-    .float-number{position:absolute;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;pointer-events:none;animation:floatUp 1.1s ease forwards;}
-    @keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(1)}60%{opacity:1;transform:translateY(-24px) scale(1.1)}100%{opacity:0;transform:translateY(-42px) scale(.8)}}
-    /* BOTTOM */
+    @keyframes fadeIn{from{opacity:0;transform:translateX(6px)}}
+
+    /* Wave notif */
+    #wave-notif{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Orbitron',sans-serif;font-size:24px;font-weight:900;color:var(--accent);text-shadow:0 0 28px var(--accent),0 0 60px rgba(0,212,255,.25);pointer-events:none;opacity:0;letter-spacing:4px;white-space:nowrap;}
+    .float-number{position:absolute;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;pointer-events:none;animation:floatUp 1.1s ease forwards;}
+    @keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(1)}60%{opacity:1;transform:translateY(-26px) scale(1.12)}100%{opacity:0;transform:translateY(-46px) scale(.8)}}
+
+    /* ── BOTTOM PANEL ── */
     #bottom-panel{flex-shrink:0;display:flex;flex-direction:column;background:var(--panel);}
-    #strips{height:var(--strips-h);border-top:1px solid var(--border);display:flex;flex-direction:column;}
-    #stats-strip{flex:1;padding:5px 8px;display:grid;grid-template-columns:repeat(6,1fr);gap:3px;align-items:center;}
-    .sstat{display:flex;flex-direction:column;align-items:center;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:4px;padding:3px 2px;}
-    .sstat-lbl{font-size:7px;color:var(--muted);}
-    .sstat-val{font-size:11px;color:var(--accent);font-weight:bold;margin-top:1px;}
-    #gold-row{padding:3px 10px 5px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);}
-    #gold-val{font-family:'Orbitron',sans-serif;font-size:13px;color:var(--gold);text-shadow:0 0 8px rgba(255,215,0,.4);}
-    #gold-lbl{font-size:8px;color:var(--muted);}
-    /* DRAWER HANDLE */
-    #drawer-handle{flex-shrink:0;height:var(--handle-h);background:var(--panel2);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 12px;cursor:pointer;user-select:none;}
-    #drawer-handle:active{background:rgba(0,229,255,.05);}
-    #handle-tabs{display:flex;}
-    .htab{padding:0 8px;height:100%;display:flex;align-items:center;font-size:9px;letter-spacing:1px;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;transition:color .15s,border-color .15s;gap:3px;}
-    .htab .htab-icon{font-size:12px;}
+
+    /* Stats strip */
+    #strips{height:var(--strips-h);border-top:1px solid var(--border2);display:flex;flex-direction:column;background:linear-gradient(180deg,#0b0e1a 0%,#090c18 100%);}
+    #stats-strip{flex:1;padding:6px 8px;display:grid;grid-template-columns:repeat(6,1fr);gap:4px;align-items:center;}
+    .sstat{
+      display:flex;flex-direction:column;align-items:center;
+      background:rgba(255,255,255,.03);
+      border:1px solid var(--border);border-radius:6px;
+      padding:4px 2px;
+      transition:border-color .2s,background .2s;
+    }
+    .sstat:hover{border-color:var(--border2);background:rgba(255,255,255,.05);}
+    .sstat-lbl{font-size:8px;color:var(--muted);letter-spacing:.5px;}
+    .sstat-val{font-size:14px;color:var(--accent);font-weight:bold;margin-top:1px;font-family:'Orbitron',sans-serif;}
+    #gold-row{
+      padding:4px 12px 6px;display:flex;align-items:center;justify-content:space-between;
+      border-top:1px solid var(--border);
+      background:rgba(255,186,0,.03);
+    }
+    #gold-val{font-family:'Orbitron',sans-serif;font-size:16px;color:var(--gold);text-shadow:var(--glow-gold);}
+    #gold-lbl{font-size:10px;color:var(--muted);letter-spacing:.5px;}
+
+    /* ── DRAWER HANDLE ── */
+    #drawer-handle{
+      flex-shrink:0;height:var(--handle-h);
+      background:linear-gradient(180deg,#0d1020 0%,#0b0e1a 100%);
+      border-top:1px solid var(--border2);
+      display:flex;align-items:center;justify-content:space-between;
+      padding:0 12px;cursor:pointer;user-select:none;
+    }
+    #drawer-handle:active{background:rgba(0,212,255,.04);}
+    #handle-tabs{display:flex;height:100%;}
+    .htab{
+      padding:0 10px;height:100%;display:flex;align-items:center;
+      font-size:11px;letter-spacing:1px;color:var(--muted);
+      border-bottom:2px solid transparent;cursor:pointer;
+      transition:color .15s,border-color .15s;gap:4px;
+    }
+    .htab .htab-icon{font-size:14px;}
     .htab.active{color:var(--accent);border-bottom-color:var(--accent);}
-    #handle-toggle{font-size:14px;color:var(--muted);transition:transform .35s;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:4px;background:rgba(255,255,255,.03);}
+    .htab:not(.active):hover{color:var(--text);}
+    #handle-toggle{
+      font-size:12px;color:var(--muted);transition:transform .35s;
+      width:26px;height:26px;display:flex;align-items:center;justify-content:center;
+      border:1px solid var(--border2);border-radius:6px;
+      background:rgba(255,255,255,.04);
+    }
     #drawer-wrap:not(.collapsed) #handle-toggle{transform:rotate(180deg);}
-    /* DRAWER */
+
+    /* ── DRAWER ── */
     #drawer-wrap{flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;transition:height .35s cubic-bezier(.4,0,.2,1);}
     #drawer-content{flex:1;position:relative;overflow:hidden;background:var(--panel2);}
-    .drawer-panel{position:absolute;inset:0;padding:8px 10px;overflow-y:auto;opacity:0;pointer-events:none;transition:opacity .18s;}
+    .drawer-panel{position:absolute;inset:0;padding:10px 12px;overflow-y:auto;opacity:0;pointer-events:none;transition:opacity .2s;}
     .drawer-panel.active{opacity:1;pointer-events:auto;}
-    .panel-title{font-family:'Orbitron',sans-serif;font-size:8px;color:var(--accent);letter-spacing:2px;margin-bottom:7px;}
-    /* INVENTORY */
-    #inv-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;margin-bottom:7px;}
-    .inv-item{aspect-ratio:1;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:15px;position:relative;cursor:pointer;transition:all .15s;}
-    .inv-item:active{opacity:.7;}
-    .inv-item.common{border-color:#3a3a4a}.inv-item.uncommon{border-color:#22c55e}
-    .inv-item.rare{border-color:#3b82f6;box-shadow:0 0 4px rgba(59,130,246,.3)}
-    .inv-item.epic{border-color:#a855f7;box-shadow:0 0 6px rgba(168,85,247,.4)}
-    .inv-item.legendary{border-color:#ffd700;box-shadow:0 0 8px rgba(255,215,0,.5);animation:legendPulse 2s ease infinite;}
-    @keyframes legendPulse{0%,100%{box-shadow:0 0 8px rgba(255,215,0,.5)}50%{box-shadow:0 0 14px rgba(255,215,0,.8)}}
-    .rarity-dot{position:absolute;bottom:2px;right:2px;width:3px;height:3px;border-radius:50%;}
-    .common .rarity-dot{background:#666}.uncommon .rarity-dot{background:#22c55e}.rare .rarity-dot{background:#3b82f6}.epic .rarity-dot{background:#a855f7}.legendary .rarity-dot{background:var(--gold)}
-    #sell-btn{width:100%;padding:7px;background:transparent;border:1px solid var(--accent2);color:var(--accent2);font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;border-radius:4px;cursor:pointer;}
-    #sell-btn:active{background:rgba(255,107,53,.15);}
-    /* EQUIP */
-    #equip-layout{display:flex;gap:8px;align-items:flex-start;}
-    .equip-grid{display:grid;grid-template-areas:". head ." "arm1 body arm2" ". belt ." ". boots .";grid-template-columns:1fr 1fr 1fr;gap:4px;flex-shrink:0;}
-    .eq-slot{aspect-ratio:1;width:52px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:18px;cursor:pointer;transition:all .2s;position:relative;}
-    .eq-slot:active{border-color:var(--accent);}.eq-slot.filled{border-color:var(--gold);background:rgba(255,215,0,.05);}
-    .eq-lbl{font-size:6px;color:var(--muted);margin-top:1px;}
-    .eq-slot[data-slot="head"]{grid-area:head}.eq-slot[data-slot="body"]{grid-area:body}
-    .eq-slot[data-slot="arm1"]{grid-area:arm1}.eq-slot[data-slot="arm2"]{grid-area:arm2}
-    .eq-slot[data-slot="belt"]{grid-area:belt}.eq-slot[data-slot="boots"]{grid-area:boots}
-    .eq-unequip-dot{position:absolute;top:2px;right:2px;width:6px;height:6px;border-radius:50%;background:var(--danger);display:none;cursor:pointer;}
-    .eq-slot.filled .eq-unequip-dot{display:block;}
-    #equip-compare{flex:1;min-width:0;}
-    #equip-compare .cmp-title{font-size:8px;color:var(--muted);margin-bottom:5px;letter-spacing:1px;}
-    .cmp-hint{font-size:9px;color:var(--muted);font-style:italic;line-height:1.5;}
-    .cmp-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:9px;}
-    .cmp-row .ckey{color:var(--muted);}.cmp-row .cval{font-weight:bold;}
-    .cmp-row .cval.up{color:var(--hp);}.cmp-row .cval.dn{color:var(--danger);}.cmp-row .cval.same{color:var(--text);}
-    /* SPELLS */
-    #spell-slots-row{display:flex;gap:4px;margin-bottom:8px;}
-    .spell-slot{flex:1;min-height:44px;background:rgba(255,255,255,.03);border:1px dashed var(--border);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:18px;cursor:pointer;transition:all .2s;position:relative;}
-    .spell-slot.filled{border-style:solid;border-color:var(--accent);background:rgba(0,229,255,.06);}
-    .spell-slot-lbl{font-size:7px;color:var(--muted);}
-    .spell-slot .ss-x{position:absolute;top:1px;right:3px;font-size:9px;color:var(--danger);display:none;}
-    .spell-slot.filled .ss-x{display:block;}
-    #spell-sep{font-size:8px;color:var(--muted);margin-bottom:5px;letter-spacing:1px;}
-    #spells-list{display:flex;flex-direction:column;gap:4px;}
-    .spell-row{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:5px;padding:5px 8px;position:relative;overflow:hidden;cursor:pointer;transition:border-color .15s,background .15s;}
-    .spell-row.locked{opacity:.35;cursor:default;}
-    .spell-row.equipped-spell{border-color:var(--accent);background:rgba(0,229,255,.06);}
-    .spell-row:not(.locked):active{background:rgba(0,229,255,.08);}
-    .spell-cd-bar{position:absolute;bottom:0;left:0;height:2px;background:var(--accent);transition:width .1s linear;}
-    .spell-ico{font-size:17px;flex-shrink:0;}.spell-info{flex:1;min-width:0;}
-    .spell-name{font-size:10px;color:var(--accent);}
-    .spell-desc{font-size:8px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .spell-meta{font-size:8px;color:var(--gold);text-align:right;min-width:40px;flex-shrink:0;}
-    .spell-tag{display:inline-block;font-size:7px;padding:1px 4px;border-radius:3px;margin-top:2px;}
-    .tag-active{background:rgba(0,229,255,.12);color:var(--accent);border:1px solid rgba(0,229,255,.25);}
-    .tag-passive{background:rgba(255,107,53,.12);color:var(--accent2);border:1px solid rgba(255,107,53,.25);}
-    .tag-aoe{background:rgba(168,85,247,.12);color:var(--purple);border:1px solid rgba(168,85,247,.25);}
-    .spell-eq-badge{position:absolute;top:3px;right:5px;font-size:7px;color:var(--accent);background:rgba(0,229,255,.15);padding:1px 4px;border-radius:3px;}
+    .panel-title{
+      font-family:'Orbitron',sans-serif;font-size:10px;color:var(--accent);
+      letter-spacing:2px;margin-bottom:9px;
+      padding-bottom:6px;border-bottom:1px solid rgba(0,212,255,.15);
+    }
 
-    /* ══ UPGRADE TREE ══ */
-    #panel-upgrades{padding:8px 10px;overflow-y:auto;}
-    #upg-gold-banner{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:4px 8px;background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.2);border-radius:5px;}
-    #upg-gold-val{font-family:'Orbitron',sans-serif;font-size:13px;color:var(--gold);}
-    .upg-gold-lbl{font-size:8px;color:var(--muted);}
-    .upg-branch{margin-bottom:10px;}
-    .upg-branch-title{font-family:'Orbitron',sans-serif;font-size:8px;letter-spacing:2px;margin-bottom:5px;padding-bottom:3px;border-bottom:1px solid var(--border);}
-    .upg-branch.combat .upg-branch-title{color:var(--accent2);}
-    .upg-branch.magic  .upg-branch-title{color:var(--accent);}
-    .upg-branch.survival .upg-branch-title{color:var(--hp);}
-    .upg-row{display:flex;flex-direction:column;gap:4px;}
-    .upg-node{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:5px;padding:6px 8px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
-    .upg-node:active{opacity:.8;}
-    .upg-node.can-buy{border-color:var(--gold);background:rgba(255,215,0,.05);}
-    .upg-node.can-buy:active{background:rgba(255,215,0,.12);}
-    .upg-node.maxed{border-color:var(--hp);background:rgba(34,197,94,.05);cursor:default;}
-    .upg-node.locked{opacity:.35;cursor:default;}
-    .upg-icon{font-size:20px;flex-shrink:0;}
-    .upg-info{flex:1;min-width:0;}
-    .upg-name{font-size:10px;color:var(--text);font-weight:bold;}
-    .upg-desc{font-size:8px;color:var(--muted);margin-top:1px;}
-    .upg-progress{display:flex;gap:3px;margin-top:3px;}
-    .upg-pip{width:10px;height:4px;border-radius:2px;background:rgba(255,255,255,.1);}
-    .upg-pip.filled{background:var(--gold);}
-    .upg-node.maxed .upg-pip.filled{background:var(--hp);}
-    .upg-cost{text-align:right;flex-shrink:0;}
-    .upg-cost-val{font-family:'Orbitron',sans-serif;font-size:10px;color:var(--gold);}
-    .upg-cost-lbl{font-size:7px;color:var(--muted);}
-    .upg-node.maxed .upg-cost-val{color:var(--hp);}
-    .upg-node.maxed .upg-cost-lbl{display:none;}
-    .upg-bar{position:absolute;bottom:0;left:0;height:2px;background:var(--gold);transition:width .3s;}
-    .upg-node.maxed .upg-bar{background:var(--hp);}
-
-    /* MODAL */
-    #modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s;}
-    #modal-overlay.open{opacity:1;pointer-events:auto;}
-    #modal-box{width:100%;max-width:420px;background:var(--panel);border-top:1px solid var(--border);border-radius:16px 16px 0 0;padding:16px 14px 20px;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:85vh;overflow-y:auto;position:relative;}
-    #modal-overlay.open #modal-box{transform:translateY(0);}
-    #modal-close{position:absolute;top:14px;right:14px;font-size:18px;color:var(--muted);cursor:pointer;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:6px;background:rgba(255,255,255,.03);}
-    #modal-close:active{background:rgba(255,255,255,.08);}
-    #modal-title{font-family:'Orbitron',sans-serif;font-size:11px;color:var(--accent);letter-spacing:2px;margin-bottom:12px;padding-right:32px;}
-    .modal-section{margin-bottom:10px;}
-    .modal-section-title{font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:5px;}
-    .modal-item-card{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:8px;}
-    .mic-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
-    .mic-icon{font-size:28px;}.mic-title{flex:1;}
-    .mic-name{font-size:13px;color:var(--accent);font-weight:bold;}
-    .mic-rarity{font-size:9px;margin-top:1px;}
-    .mic-rarity.common{color:#888}.mic-rarity.uncommon{color:#22c55e}.mic-rarity.rare{color:#3b82f6}.mic-rarity.epic{color:#a855f7}.mic-rarity.legendary{color:var(--gold)}
-    .mic-stats{display:flex;flex-wrap:wrap;gap:4px;}
-    .mic-stat{font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);}
-    .mic-stat.pos{color:var(--hp);border-color:rgba(34,197,94,.25);}.mic-stat.neg{color:var(--danger);border-color:rgba(239,68,68,.25);}
-    .modal-btn{width:100%;padding:10px;border-radius:5px;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;transition:all .2s;margin-top:6px;}
-    .modal-btn.primary{background:rgba(0,229,255,.1);border:1px solid var(--accent);color:var(--accent);}
-    .modal-btn.primary:active{background:rgba(0,229,255,.22);}
-    .modal-btn.danger{background:rgba(239,68,68,.1);border:1px solid var(--danger);color:var(--danger);}
-    .modal-btn.danger:active{background:rgba(239,68,68,.22);}
-    .modal-btn.muted-btn{background:transparent;border:1px solid var(--border);color:var(--muted);}
-    .modal-btn.muted-btn:active{background:rgba(255,255,255,.05);}
-    .spell-detail-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
-    .spell-detail-ico{font-size:36px;}
-    .spell-detail-name{font-size:14px;color:var(--accent);font-weight:bold;}
-    .spell-detail-sub{font-size:9px;color:var(--muted);margin-top:2px;}
-    .spell-detail-desc{font-size:10px;color:var(--text);line-height:1.6;margin:8px 0;padding:8px;background:rgba(255,255,255,.03);border-radius:4px;border:1px solid var(--border);}
-    .spell-tags-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;}
-    .spell-stat-chip{font-size:9px;padding:3px 7px;border-radius:4px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.2);color:var(--accent);}
-    .spell-stat-chip.gold{background:rgba(255,215,0,.08);border-color:rgba(255,215,0,.2);color:var(--gold);}
-    /* TOAST */
-    #item-toast{position:fixed;top:60px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--accent);border-radius:6px;padding:8px 14px;font-size:11px;max-width:260px;width:90%;text-align:center;box-shadow:var(--glow);pointer-events:none;opacity:0;transition:opacity .2s;z-index:99;}
-    #item-toast.show{opacity:1;}
-    .tt-name{color:var(--accent);font-size:12px;margin-bottom:3px;}
-    .tt-rarity{font-size:9px;margin-top:3px;}
-    .tt-rarity.common{color:#888}.tt-rarity.uncommon{color:#22c55e}.tt-rarity.rare{color:#3b82f6}.tt-rarity.epic{color:#a855f7}.tt-rarity.legendary{color:var(--gold);}
-    ::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
-    @keyframes waveFlash{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}70%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.1)}}
+    /* ── INVENTORY ── */
+    #inv-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-bottom:8px;}
+    .inv-item{
+      aspect-ratio:1;
+      background:rgba(255,255,255,.03);
+      border:1px solid var(--border);border-radius:6px;
+      display:flex;align-items:center;justify-content:center;
+      font-size:16px;position:relative;cursor:pointer;
+      transition:all .18s;
+    }
+    .inv-item:active{opacity:.65;transform:scale(.94);}
+    .inv-item.common  {border-color:#35384a;}
+    .inv-item.uncommon{border-color:#00e676;background:rgba(0,230,118,.04);}
+    .inv-item.rare    {border-color:#448aff;background:rgba(68,138,255,.05);box-shadow:0 0 5px rgba(68,138,255,.25);}
+    .inv-item.epic    {border-color:#e040fb;background:rgba(224,64,251,.05);box-shadow:0 0 7px rgba(224,64,251,.3);}
   </style>
 </head>
 <body>
 <div id="app">
   <div id="hud-top">
-    <div id="hud-title">⬡ GOLEM</div>
+    <div id="hud-title">⬡ GOLEM<span>.EXE</span></div>
     <div id="hud-wave">VAGUE <span id="wave-num">1</span> · <span id="enemy-count">0</span> ☠</div>
     <div id="hud-score"><span id="score-val">0</span><b>SCORE</b></div>
   </div>
@@ -256,7 +228,12 @@
         <div class="drawer-panel active" id="panel-inventory">
           <div class="panel-title">⬡ Inventaire (<span id="inv-count">0</span>/24)</div>
           <div id="inv-grid"></div>
-          <button id="sell-btn">⟳ AUTO-VENTE COMMUNS</button>
+          <div id="sell-bar">
+            <button class="sell-rarity-btn" data-rarity="common">Commun</button>
+            <button class="sell-rarity-btn" data-rarity="uncommon">Peu commun</button>
+            <button class="sell-rarity-btn" data-rarity="rare">Rare</button>
+            <button class="sell-rarity-btn active" id="sell-all-btn">TOUT VENDRE ↓</button>
+          </div>
         </div>
         <!-- EQUIP -->
         <div class="drawer-panel" id="panel-equip">
@@ -327,7 +304,7 @@ const C={
   grunt:{body:'#c0392b',eye:'#ff6b35'},brute:{body:'#7d3c98',eye:'#e74c3c'},
   slime:{body:'#27ae60',eye:'#a9dfbf'},archer:{body:'#e67e22',eye:'#f39c12'},
   wraith:{body:'#2c3e50',eye:'#9b59b6'},
-  tile:{a:'#0d1f3a',b:'#101e38',line:'#182038'},
+  tile:{a:'#0a1a30',b:'#0d1f38',line:'#152535'},
 };
 
 // ══ UPGRADE TREE DEFINITIONS ══════════════════════════════════════════
@@ -552,6 +529,117 @@ function fxSlash(x,y,crit){
   }});
 }
 
+// ── FX: Toxic cloud (green bubbling zone) ────────────────────────────
+function fxToxicCloud(x,y){
+  spawnVfx({x,y,life:3,draw(ctx,t){
+    const alpha=(t<.2?t/.2:t>.8?(1-t)/.2:1)*.5;
+    // pulsing green mist
+    for(let i=0;i<3;i++){
+      const r=40+i*15+Math.sin(vfxTime*2+i)*8;
+      const g=ctx.createRadialGradient(x,y,0,x,y,r);
+      g.addColorStop(0,`rgba(50,200,50,${alpha*.4})`);g.addColorStop(1,'rgba(50,200,50,0)');
+      ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y,r,r*.4,0,0,Math.PI*2);ctx.fill();
+    }
+    // rising bubbles
+    for(let i=0;i<5;i++){
+      const bx=x+Math.sin(vfxTime*1.5+i*1.3)*30;
+      const by=y-((vfxTime*20+i*15)%40);
+      ctx.fillStyle=`rgba(80,220,80,${alpha*.8})`;
+      ctx.beginPath();ctx.arc(bx,by,3,0,Math.PI*2);ctx.fill();
+    }
+  }});
+}
+
+// ── FX: Vortex (spiral pull) ──────────────────────────────────────────
+function fxVortex(x,y){
+  spawnVfx({x,y,life:.8,draw(ctx,t){
+    const alpha=(1-t)*.8;const n=8;
+    for(let i=0;i<n;i++){
+      const a=i/n*Math.PI*2+vfxTime*5;const r=(1-t)*60;
+      const px=x+Math.cos(a)*r;const py=y+Math.sin(a)*r*.4;
+      ctx.fillStyle=`rgba(150,80,255,${alpha})`;
+      ctx.beginPath();ctx.arc(px,py,3*(1-t)+1,0,Math.PI*2);ctx.fill();
+    }
+    // core swirl
+    ctx.strokeStyle=`rgba(180,100,255,${alpha*.6})`;ctx.lineWidth=2;
+    ctx.beginPath();
+    for(let i=0;i<30;i++){
+      const a=i/30*Math.PI*6;const r=(1-t)*50*(i/30);
+      const px=x+Math.cos(a)*r;const py=y+Math.sin(a)*r*.4;
+      i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+  }});
+}
+
+// ── FX: Blizzard (sweeping snow) ─────────────────────────────────────
+function fxBlizzard(x,y,dur){
+  spawnVfx({x,y,life:dur,draw(ctx,t){
+    const alpha=(t<.1?t/.1:t>.9?(1-t)/.1:1)*.7;
+    // wind streaks
+    for(let i=0;i<8;i++){
+      const wx=x+Math.cos(i/8*Math.PI*2)*60*rnd(.5,1);
+      const wy=y+Math.sin(i/8*Math.PI*2)*60*rnd(.5,1)*.4;
+      const len=rnd(15,35);const a=Math.random()*Math.PI*.3-0.2;
+      ctx.strokeStyle=`rgba(200,230,255,${alpha*rnd(.3,.7)})`;ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(wx,wy);ctx.lineTo(wx+Math.cos(a)*len,wy+Math.sin(a)*len*.4);ctx.stroke();
+    }
+    // snowflakes
+    for(let i=0;i<6;i++){
+      const fx2=x+Math.sin(vfxTime*2+i*1.1)*50;const fy=y+((vfxTime*15+i*20)%50-25)*.4;
+      ctx.fillStyle=`rgba(210,235,255,${alpha*.8})`;
+      ctx.font='12px sans-serif';ctx.fillText('❄',fx2-6,fy);
+    }
+  }});
+}
+
+// ── FX: Quake 360 ring burst ─────────────────────────────────────────
+function fxQuake(x,y){
+  for(let ring=0;ring<3;ring++){
+    setTimeout(()=>{
+      spawnVfx({x,y,life:.5,draw(ctx,t){
+        const r=t*80;const a=(1-t)*.7;
+        ctx.strokeStyle=`rgba(180,100,30,${a})`;ctx.lineWidth=3-t*2;
+        ctx.beginPath();ctx.ellipse(x,y,r,r*.4,0,0,Math.PI*2);ctx.stroke();
+        // cracks
+        for(let i=0;i<6;i++){
+          const ca=i/6*Math.PI*2;const cr=r*.8;
+          ctx.strokeStyle=`rgba(200,130,50,${a*.6})`;ctx.lineWidth=1;
+          ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+Math.cos(ca)*cr,y+Math.sin(ca)*cr*.4);ctx.stroke();
+        }
+      }});
+    },ring*120);
+  }
+  spawnPart(x,y,20,'#c8640a',4,1);
+}
+
+// ── FX: Arc storm (random bolt strikes) ─────────────────────────────
+function fxArcStorm(gx,gy,targets){
+  for(let i=0;i<targets.length;i++){
+    setTimeout(()=>{
+      const t=targets[i];if(!t)return;
+      const tp=ISO.toScreen(t.col,t.row);
+      // bolt from sky above target
+      const fromX=tp.x+rnd(-30,30);const fromY=tp.y-rnd(80,140);
+      spawnVfx({life:.3,draw(ctx,tt){
+        const a=(1-tt)*.9;
+        ctx.strokeStyle=`rgba(180,220,255,${a})`;ctx.lineWidth=2;
+        ctx.beginPath();ctx.moveTo(fromX,fromY);
+        // jagged bolt
+        const segs=4;
+        for(let s=1;s<=segs;s++){
+          const px=fromX+(tp.x-fromX)*s/segs+rnd(-10,10);
+          const py=fromY+(tp.y-fromY)*s/segs+rnd(-5,5);
+          ctx.lineTo(px,py);
+        }
+        ctx.stroke();
+        ctx.fillStyle=`rgba(200,240,255,${a})`;ctx.beginPath();ctx.arc(tp.x,tp.y,5*(1-tt)+2,0,Math.PI*2);ctx.fill();
+      }});
+      spawnPart(tp.x,tp.y,6,'#b0d4ff',3,.5);
+    },i*100);
+  }
+}
+
 // ══ STATE ══════════════════════════════════════════════════════════════
 const BASE_STATS={hp:100,maxHp:100,mp:50,maxMp:50,xp:0,xpNext:100,level:1,
   str:10,int:8,spd:5,def:3,atkDmg:12,atkSpd:1.2,critChance:5,gold:0};
@@ -627,16 +715,22 @@ function renderUpgrades(){
 
 // ══ SPELL & ITEM DATA ═════════════════════════════════════════════════
 const SPELL_DEFS=[
-  {id:'basic',   name:'Frappe Basique',  icon:'🔩',desc:'Auto-attaque physique',          type:'passive',cd:0, mp:0, lvl:1,passive:true,tag:'passive'},
-  {id:'slam',    name:'Séisme',          icon:'💥',desc:'200% ATK + onde de choc',        type:'active', cd:4, mp:8, lvl:1,dmgMult:2.0,tag:'active'},
-  {id:'shield',  name:'Bouclier',        icon:'🛡️',desc:'+50% DEF 4s + aura visuelle',   type:'active', cd:12,mp:12,lvl:2,buff:true,buffDur:4,tag:'active'},
-  {id:'regen',   name:'Régén. Pierre',   icon:'🌿',desc:'Soigne 15% HP max toutes 8s',    type:'passive',cd:8, mp:5, lvl:2,healPct:.15,tag:'passive'},
-  {id:'nova',    name:'Nova de Glace',   icon:'❄️',desc:'Zone hex — ralentit −40% 3s',   type:'active', cd:10,mp:18,lvl:3,aoe:true,slowPct:.4,slowDur:3,tag:'aoe'},
-  {id:'chain',   name:'Éclair Chaîné',  icon:'⚡',desc:'Arc entre 3 ennemis (120% ATK)', type:'active', cd:7, mp:14,lvl:3,chain:3,dmgMult:1.2,tag:'active'},
-  {id:'berserker',name:'Berserker',      icon:'🔥',desc:'+80% ATK / −20% DEF 5s',        type:'active', cd:15,mp:20,lvl:4,tag:'active'},
-  {id:'meteor',  name:'Météorite',       icon:'☄️',desc:'5× ATK zone + impact visuel',   type:'active', cd:20,mp:30,lvl:5,aoe:true,dmgMult:5.0,tag:'aoe'},
-  {id:'lifesteal',name:'Vol de Vie',     icon:'🩸',desc:'20% dégâts → soigne HP',        type:'passive',cd:0, mp:0, lvl:4,leech:.20,tag:'passive'},
-  {id:'critique',name:'Maîtrise Crit.', icon:'🎯',desc:'+25% crit chance passif',         type:'passive',cd:0, mp:0, lvl:3,critBonus:25,tag:'passive'},
+  {id:'basic',     name:'Frappe Basique',  icon:'🔩',desc:'Auto-attaque physique de base',          type:'passive',cd:0, mp:0, lvl:1,passive:true,tag:'passive'},
+  {id:'slam',      name:'Séisme',          icon:'💥',desc:'200% ATK + onde de choc sur 1 cible',    type:'active', cd:4, mp:8, lvl:1,dmgMult:2.0,tag:'active'},
+  {id:'shield',    name:'Bouclier',        icon:'🛡️',desc:'+50% DEF 4s + aura orbitale',            type:'active', cd:12,mp:12,lvl:2,buff:true,buffDur:4,tag:'active'},
+  {id:'regen',     name:'Régén. Pierre',   icon:'🌿',desc:'Soigne 15% HP max toutes 8s',            type:'passive',cd:8, mp:5, lvl:2,healPct:.15,tag:'passive'},
+  {id:'nova',      name:'Nova de Glace',   icon:'❄️',desc:'Zone hex — ralentit tous −40% 3s',       type:'active', cd:10,mp:18,lvl:3,aoe:true,slowPct:.4,slowDur:3,tag:'aoe'},
+  {id:'chain',     name:'Éclair Chaîné',  icon:'⚡',desc:'Arc entre 3 ennemis (120% ATK)',          type:'active', cd:7, mp:14,lvl:3,chain:3,dmgMult:1.2,tag:'active'},
+  {id:'berserker', name:'Berserker',       icon:'🔥',desc:'+80% ATK / −20% DEF pendant 5s',        type:'active', cd:15,mp:20,lvl:4,tag:'active'},
+  {id:'meteor',    name:'Météorite',       icon:'☄️',desc:'5× ATK zone + impact visuel',            type:'active', cd:20,mp:30,lvl:5,aoe:true,dmgMult:5.0,tag:'aoe'},
+  {id:'lifesteal', name:'Vol de Vie',      icon:'🩸',desc:'20% des dégâts physiques soignent HP',   type:'passive',cd:0, mp:0, lvl:4,leech:.20,tag:'passive'},
+  {id:'critique',  name:'Maîtrise Crit.', icon:'🎯',desc:'+25% chance critique (passif permanent)', type:'passive',cd:0, mp:0, lvl:3,critBonus:25,tag:'passive'},
+  // ── 5 NEW AOE SPELLS ──────────────────────────────────────────────
+  {id:'toxiccloud', name:'Nuage Toxique',  icon:'🌫️',desc:'Zone poison 3s — 30% ATK/s sur tous',   type:'active', cd:9, mp:16,lvl:3,aoe:true,dmgMult:0.3,dotDur:3,tag:'aoe'},
+  {id:'vortex',     name:'Vortex',         icon:'🌀',desc:'Aspire tous les ennemis vers le Golem', type:'active', cd:14,mp:22,lvl:4,aoe:true,tag:'aoe'},
+  {id:'blizzard',   name:'Blizzard',       icon:'🌨️',desc:'Tempête 4s — ralentit −60% + dégâts',   type:'active', cd:18,mp:28,lvl:5,aoe:true,dmgMult:0.8,slowPct:.6,dotDur:4,tag:'aoe'},
+  {id:'quake',      name:'Tremblement',    icon:'🌋',desc:'Onde sismique 360° — 150% ATK tous',    type:'active', cd:11,mp:20,lvl:4,aoe:true,dmgMult:1.5,tag:'aoe'},
+  {id:'arcstorm',   name:'Tempête Arcane', icon:'⚡',desc:'Foudre aléatoire 5× sur ennemis 160%',  type:'active', cd:13,mp:24,lvl:5,aoe:true,dmgMult:1.6,hits:5,tag:'aoe'},
 ];
 const ITEMS=[
   {id:'h1',name:'Heaume de Fer',      icon:'⛑️',slot:'head', rarity:'common',   stats:{def:2}},
@@ -668,10 +762,34 @@ const ITEMS=[
   {id:'r4',name:'Orbe du Chaos',      icon:'🔮',slot:'belt', rarity:'epic',     stats:{int:12,mp:25,crit:6}},
   {id:'sc6',name:'Parchemin: Météorite',icon:'📜',slot:null, rarity:'epic',     stats:{},spell:'meteor'},
   {id:'sc7',name:'Parchemin: Vol de Vie',icon:'📜',slot:null,rarity:'epic',     stats:{},spell:'lifesteal'},
-  {id:'w5',name:'Excalibur Golem',    icon:'⚜️',slot:'arm2', rarity:'legendary',stats:{atk:25,str:15,crit:20,spd:3}},
-  {id:'b5',name:"Manteau de l'Éon",   icon:'🌌',slot:'body', rarity:'legendary',stats:{def:20,hp:50,mp:30,int:10}},
+  {id:'w5', name:'Excalibur Golem',    icon:'⚜️',slot:'arm2', rarity:'legendary',stats:{atk:25,str:15,crit:20,spd:3}},
+  {id:'b5', name:"Manteau de l'Éon",   icon:'🌌',slot:'body', rarity:'legendary',stats:{def:20,hp:50,mp:30,int:10}},
   {id:'sc8',name:'Parchemin: Critique',icon:'📜',slot:null,  rarity:'legendary',stats:{},spell:'critique'},
-  {id:'h5',name:'Couronne Éternelle', icon:'☀️',slot:'head', rarity:'legendary',stats:{def:12,int:15,str:10,crit:10,spd:2}},
+  {id:'h5', name:'Couronne Éternelle', icon:'☀️',slot:'head', rarity:'legendary',stats:{def:12,int:15,str:10,crit:10,spd:2}},
+  // ── NEW UNCOMMON ──────────────────────────────────────────────────
+  {id:'a4', name:'Griffes du Loup',    icon:'🐺',slot:'arm1', rarity:'uncommon', stats:{str:4,crit:3,atk:3}},
+  {id:'r5', name:'Ceinture de Mana',   icon:'💙',slot:'belt', rarity:'uncommon', stats:{mp:20,int:2}},
+  {id:'f4', name:'Souliers du Danseur',icon:'🩰',slot:'boots',rarity:'uncommon', stats:{spd:4,crit:2}},
+  {id:'h6', name:'Bandeau du Mage',    icon:'🎓',slot:'head', rarity:'uncommon', stats:{int:4,mp:10}},
+  // ── NEW RARE ─────────────────────────────────────────────────────
+  {id:'w6', name:'Faucille Ensorcelée',icon:'🌙',slot:'arm2', rarity:'rare',     stats:{atk:10,crit:8,int:4}},
+  {id:'a5', name:'Moufles Magmatiques',icon:'🌋',slot:'arm1', rarity:'rare',     stats:{str:7,atk:6,def:3}},
+  {id:'b6', name:'Gilet de Mailles',   icon:'🪬',slot:'body', rarity:'rare',     stats:{def:8,str:4,spd:2}},
+  {id:'r6', name:'Anneau du Titan',    icon:'💪',slot:'belt', rarity:'rare',     stats:{str:8,hp:20}},
+  {id:'f5', name:'Bottes Spectrales',  icon:'👻',slot:'boots',rarity:'rare',     stats:{spd:6,crit:5,def:2}},
+  {id:'sc9', name:'Parchemin: Nuage',  icon:'📜',slot:null,   rarity:'rare',     stats:{},spell:'toxiccloud'},
+  {id:'sc10',name:'Parchemin: Vortex', icon:'📜',slot:null,   rarity:'rare',     stats:{},spell:'vortex'},
+  // ── NEW EPIC ─────────────────────────────────────────────────────
+  {id:'w7', name:'Trident des Abysses',icon:'🔱',slot:'arm2', rarity:'epic',     stats:{atk:18,int:10,crit:10}},
+  {id:'h7', name:'Masque du Néant',    icon:'🎭',slot:'head', rarity:'epic',     stats:{int:8,def:8,crit:12,mp:20}},
+  {id:'f6', name:'Bottines du Vent',   icon:'🌬️',slot:'boots',rarity:'epic',     stats:{spd:8,crit:6,atk:4}},
+  {id:'b7', name:'Carapace Cosmique',  icon:'🌠',slot:'body', rarity:'epic',     stats:{def:18,hp:40,str:6}},
+  {id:'sc11',name:'Parchemin: Blizzard',icon:'📜',slot:null,  rarity:'epic',     stats:{},spell:'blizzard'},
+  {id:'sc12',name:'Parchemin: Tremblement',icon:'📜',slot:null,rarity:'epic',   stats:{},spell:'quake'},
+  // ── NEW LEGENDARY ─────────────────────────────────────────────────
+  {id:'a6', name:'Brassards du Chaos', icon:'⚡',slot:'arm1', rarity:'legendary',stats:{str:12,atk:10,crit:15,int:8}},
+  {id:'r7', name:'Ceinture de l\'Infini',icon:'♾️',slot:'belt',rarity:'legendary',stats:{str:10,int:10,spd:5,crit:8,hp:30}},
+  {id:'sc13',name:'Parchemin: Tempête',icon:'📜',slot:null,   rarity:'legendary',stats:{},spell:'arcstorm'},
 ];
 const RW={common:45,uncommon:30,rare:17,epic:6,legendary:2};
 const ETYPES={
@@ -719,11 +837,48 @@ function getEquipComparison(item){
 
 // ══ SPELL ENGINE ══════════════════════════════════════════════════════
 function initSpells(){
-  state.activeSpells=SPELL_DEFS.map(s=>({...s,timer:0,unlocked:s.lvl<=1}));
+  state.activeSpells=SPELL_DEFS.map(s=>({
+    ...s,timer:0,unlocked:s.lvl<=1,
+    spellLvl:1,spellXp:0,spellXpNext:10, // spell mastery
+  }));
   state.golem.equippedSpells=[null,null,null,null];
   const slam=getSpellState('slam');if(slam)slam.unlocked=true;
   state.golem.equippedSpells[0]='slam';
   renderSpellSlots();renderSpells();renderSpellPips();
+}
+
+// ── Spell mastery XP ─────────────────────────────────────────────────
+// Each spell has spellLvl (max 10). Each cast grants XP. On levelup:
+// active spells: −10% CD, +10% dmg multiplier, −1 MP cost
+// passive spells: +10% effectiveness
+const SPELL_MAX_LVL=10;
+function gainSpellXp(spellId,xpAmt=1){
+  const s=getSpellState(spellId);if(!s||!s.unlocked)return;
+  if(s.spellLvl>=SPELL_MAX_LVL)return;
+  s.spellXp+=xpAmt;
+  while(s.spellXp>=s.spellXpNext&&s.spellLvl<SPELL_MAX_LVL){
+    s.spellXp-=s.spellXpNext;
+    s.spellLvl++;
+    s.spellXpNext=Math.floor(s.spellXpNext*1.6);
+    // Apply mastery bonuses
+    const def=getSpellDef(spellId);
+    if(def){
+      if(!def.passive){
+        // reduce cooldown by 5% (min 1s)
+        s.cdMastery=(s.cdMastery||0)+0.05;
+        // increase dmg mult by 10%
+        s.dmgMastery=(s.dmgMastery||1)*1.10;
+        // reduce MP cost by 1 (min 1)
+        s.mpMastery=(s.mpMastery||0)+1;
+      } else {
+        s.passiveMastery=(s.passiveMastery||1)*1.15;
+      }
+    }
+    addLog(`✨ ${s.name} → Maîtrise LVL ${s.spellLvl}!`,'log-spell');
+    const gp=ISO.toScreen(state.golem.col,state.golem.row);
+    spawnFloat(gp.x,gp.y-40,`${s.icon} LVL${s.spellLvl}!`,'#ffd700');
+    spawnPart(gp.x,gp.y,12,'#ffd700',3,.7);
+  }
 }
 function getSpellDef(id){return SPELL_DEFS.find(s=>s.id===id);}
 function getSpellState(id){return state.activeSpells.find(s=>s.id===id);}
@@ -760,63 +915,140 @@ function updateSpells(dt){
   }
   const regen=getSpellState('regen');
   if(regen?.unlocked&&regen.timer<=0){
-    G.hp=Math.min(G.maxHp,G.hp+G.maxHp*regen.healPct);regen.timer=8*cdMult;
+    const healAmt=G.maxHp*regen.healPct*(regen.passiveMastery||1);
+    G.hp=Math.min(G.maxHp,G.hp+healAmt);regen.timer=8*cdMult;
     const p=ISO.toScreen(G.col,G.row);fxHeal(p.x,p.y);
-    addLog(`🌿 +${Math.floor(G.maxHp*regen.healPct)} HP`,'log-heal');
+    addLog(`🌿 Niv.${regen.spellLvl}: +${Math.floor(healAmt)} HP`,'log-heal');
+    gainSpellXp('regen',1);
   } else if(regen?.unlocked)regen.timer=Math.max(0,regen.timer-dt);
 }
 
 function castSpell(def,s,G,cdMult=1){
-  G.mp=Math.max(0,G.mp-def.mp);s.timer=def.cd*cdMult;
+  // Mastery bonuses
+  const effCd  = Math.max(1, def.cd * cdMult * (1-(s.cdMastery||0)));
+  const effMp  = Math.max(0, def.mp - (s.mpMastery||0));
+  const effDmg = (def.dmgMult||1) * (s.dmgMastery||1);
+  G.mp=Math.max(0,G.mp-effMp); s.timer=effCd;
   const near=state.enemies.slice().sort((a,b)=>dist(G,a)-dist(G,b));
   const p=ISO.toScreen(G.col,G.row);
 
   if(def.id==='slam'&&near[0]){
     const ep=ISO.toScreen(near[0].col,near[0].row);
-    const dmg=Math.floor((G.atkDmg+G.str)*def.dmgMult);near[0].hp-=dmg;near[0].hitFlash=1;
+    const dmg=Math.floor((G.atkDmg+G.str)*effDmg); near[0].hp-=dmg; near[0].hitFlash=1;
     fxShockwave(ep.x,ep.y);
     spawnFloat(ep.x,ep.y-24,`💥${dmg}`,'#ff6b35');
-    addLog(`💥 Séisme: ${dmg} sur ${near[0]?.name||'?'}`,'log-spell');
+    addLog(`💥 Séisme Niv.${s.spellLvl}: ${dmg}`,'log-spell');
     if(near[0].hp<=0)killEnemy(near[0]);
+    gainSpellXp('slam',2);
 
   }else if(def.id==='shield'){
-    G.def=Math.floor(G.def*1.5);fxShield(p.x,p.y,4);
+    const defBonus=1.5+(s.spellLvl-1)*0.05; // +5% per level
+    G.def=Math.floor(G.def*defBonus); fxShield(p.x,p.y,4);
     spawnFloat(p.x,p.y-28,'🛡️ DEF+','#3b82f6');
-    addLog('🛡️ Bouclier 4s','log-spell');
-    setTimeout(()=>{G.def=Math.floor(G.def/1.5);},4000);
+    addLog(`🛡️ Bouclier Niv.${s.spellLvl} (+${Math.round((defBonus-1)*100)}%)`,'log-spell');
+    setTimeout(()=>{G.def=Math.floor(G.def/defBonus);},4000);
+    gainSpellXp('shield',1);
 
   }else if(def.id==='nova'){
-    for(const e of state.enemies){e.slow=.4;setTimeout(()=>{if(e)e.slow=0;},3000);}
+    const slowAmt=Math.min(0.8, 0.4+(s.spellLvl-1)*0.04);
+    for(const e of state.enemies){e.slow=slowAmt; setTimeout(()=>{if(e)e.slow=0;},3000);}
     fxNova(p.x,p.y);
-    spawnFloat(p.x,p.y-32,'❄️ ZONE','#00e5ff');
-    addLog(`❄️ Nova: ${state.enemies.length} ralentis`,'log-spell');
+    spawnFloat(p.x,p.y-32,`❄️ -${Math.round(slowAmt*100)}%`,'#00e5ff');
+    addLog(`❄️ Nova Niv.${s.spellLvl}: ${state.enemies.length} ralentis (-${Math.round(slowAmt*100)}%)`,'log-spell');
+    gainSpellXp('nova', state.enemies.length);
 
   }else if(def.id==='chain'&&near.length){
-    const tgts=near.slice(0,3);
+    // +1 chain target every 3 levels
+    const chainCount=Math.min(near.length, 3+Math.floor((s.spellLvl-1)/3));
+    const tgts=near.slice(0,chainCount);
     const pts=[p,...tgts.map(t=>ISO.toScreen(t.col,t.row))];
     fxChain(pts);
     for(const t of tgts){
-      const dmg=Math.floor((G.atkDmg+G.int)*1.2);t.hp-=dmg;t.hitFlash=1;
+      const dmg=Math.floor((G.atkDmg+G.int)*effDmg); t.hp-=dmg; t.hitFlash=1;
       spawnFloat(ISO.toScreen(t.col,t.row).x,ISO.toScreen(t.col,t.row).y-15,`⚡${dmg}`,'#ffd700');
       if(t.hp<=0)killEnemy(t);
     }
-    addLog(`⚡ Éclair: ${tgts.length} cibles`,'log-spell');
+    addLog(`⚡ Éclair Niv.${s.spellLvl}: ${chainCount} cibles`,'log-spell');
+    gainSpellXp('chain', chainCount);
 
   }else if(def.id==='berserker'){
-    const oAtk=G.atkDmg,oDef=G.def;G.atkDmg=Math.floor(G.atkDmg*1.8);G.def=Math.floor(G.def*.8);
-    fxBerserker(5);spawnFloat(p.x,p.y-30,'🔥 RAGE','#ff6b35');
-    addLog('🔥 Berserker 5s','log-spell');
+    const atkBonus=1.8+(s.spellLvl-1)*0.08; // +8% per level
+    const oAtk=G.atkDmg,oDef=G.def;
+    G.atkDmg=Math.floor(G.atkDmg*atkBonus); G.def=Math.floor(G.def*.8);
+    fxBerserker(5); spawnFloat(p.x,p.y-30,`🔥 +${Math.round((atkBonus-1)*100)}%`,'#ff6b35');
+    addLog(`🔥 Berserker Niv.${s.spellLvl} (+${Math.round((atkBonus-1)*100)}% ATK)`,'log-spell');
     setTimeout(()=>{G.atkDmg=oAtk;G.def=oDef;},5000);
+    gainSpellXp('berserker',3);
 
   }else if(def.id==='meteor'&&near[0]){
+    const aoeRadius=2.5+(s.spellLvl-1)*0.15; // radius grows with level
     const ep=ISO.toScreen(near[0].col,near[0].row);
     fxMeteor(ep.x,ep.y);
-    addLog(`☄️ Météorite en approche!`,'log-spell');
+    addLog(`☄️ Météorite Niv.${s.spellLvl}!`,'log-spell');
     setTimeout(()=>{
-      const aoe=state.enemies.filter(e=>dist({col:near[0].col,row:near[0].row},e)<2.5);
-      for(const e of aoe){const dmg=Math.floor((G.atkDmg+G.int)*5);e.hp-=dmg;e.hitFlash=1;spawnFloat(ISO.toScreen(e.col,e.row).x,ISO.toScreen(e.col,e.row).y-15,`☄️${dmg}`,'#ff4500');if(e.hp<=0)killEnemy(e);}
+      const tCol=near[0].col, tRow=near[0].row;
+      const aoe=state.enemies.filter(e=>dist({col:tCol,row:tRow},e)<aoeRadius);
+      for(const e of aoe){
+        const dmg=Math.floor((G.atkDmg+G.int)*effDmg); e.hp-=dmg; e.hitFlash=1;
+        spawnFloat(ISO.toScreen(e.col,e.row).x,ISO.toScreen(e.col,e.row).y-15,`☄️${dmg}`,'#ff4500');
+        if(e.hp<=0)killEnemy(e);
+      }
       addLog(`☄️ Impact: ${aoe.length} touchés`,'log-spell');
+      gainSpellXp('meteor', aoe.length+2);
     },250);
+
+  }else if(def.id==='toxiccloud'){
+    const p2=ISO.toScreen(G.col,G.row);const dotDmg=Math.floor((G.atkDmg+G.int)*effDmg);
+    fxToxicCloud(p2.x,p2.y);
+    addLog(`🌫️ Nuage Niv.${s.spellLvl}: poison!`,'log-spell');
+    const dur=(def.dotDur||3)*(1+(s.spellLvl-1)*.1);let ticks=0;
+    const iv=setInterval(()=>{ticks++;for(const e of state.enemies){e.hp-=dotDmg;e.hitFlash=.4;if(e.hp<=0)killEnemy(e);}spawnFloat(p2.x,p2.y-20,`☠${dotDmg}`,'#50c850');if(ticks>=Math.ceil(dur))clearInterval(iv);},1000);
+    gainSpellXp('toxiccloud',2);
+
+  }else if(def.id==='vortex'){
+    const p3=ISO.toScreen(G.col,G.row);fxVortex(p3.x,p3.y);
+    addLog(`🌀 Vortex Niv.${s.spellLvl}: aspiration!`,'log-spell');
+    const pull=0.3+s.spellLvl*.04;
+    for(const e of state.enemies){
+      e.col+=( G.col-e.col)*pull;e.row+=(G.row-e.row)*pull;
+      const dmg=Math.floor(G.atkDmg*.5*effDmg);e.hp-=dmg;e.hitFlash=1;if(e.hp<=0)killEnemy(e);
+    }
+    gainSpellXp('vortex',state.enemies.length);
+
+  }else if(def.id==='blizzard'){
+    const p4=ISO.toScreen(G.col,G.row);const blizDur=(def.dotDur||4)*(1+(s.spellLvl-1)*.1);
+    fxBlizzard(p4.x,p4.y,blizDur);
+    const slowAmt=Math.min(.85,.6+(s.spellLvl-1)*.03);
+    for(const e of state.enemies){e.slow=slowAmt;setTimeout(()=>{if(e)e.slow=0;},blizDur*1000);}
+    addLog(`🌨️ Blizzard Niv.${s.spellLvl}: −${Math.round(slowAmt*100)}%`,'log-spell');
+    const bDmg=Math.floor((G.atkDmg+G.int)*effDmg);let bt=0;
+    const biv=setInterval(()=>{bt++;for(const e of state.enemies){e.hp-=bDmg;e.hitFlash=.4;if(e.hp<=0)killEnemy(e);}if(bt>=Math.ceil(blizDur))clearInterval(biv);},1000);
+    gainSpellXp('blizzard',state.enemies.length+1);
+
+  }else if(def.id==='quake'){
+    const p5=ISO.toScreen(G.col,G.row);fxQuake(p5.x,p5.y);
+    addLog(`🌋 Tremblement Niv.${s.spellLvl}: 360°!`,'log-spell');
+    for(const e of state.enemies){
+      const dmg=Math.floor((G.atkDmg+G.str)*effDmg);e.hp-=dmg;e.hitFlash=1;
+      spawnFloat(ISO.toScreen(e.col,e.row).x,ISO.toScreen(e.col,e.row).y-15,`🌋${dmg}`,'#c8640a');
+      if(e.hp<=0)killEnemy(e);
+    }
+    gainSpellXp('quake',state.enemies.length+1);
+
+  }else if(def.id==='arcstorm'){
+    const hits=Math.min(state.enemies.length,(def.hits||5)+Math.floor(s.spellLvl/3));
+    const tgts=state.enemies.slice().sort(()=>Math.random()-.5).slice(0,hits);
+    fxArcStorm(ISO.toScreen(G.col,G.row).x,ISO.toScreen(G.col,G.row).y,tgts);
+    addLog(`⚡ Tempête Niv.${s.spellLvl}: ${tgts.length} frappes!`,'log-spell');
+    for(let i=0;i<tgts.length;i++){
+      setTimeout(()=>{
+        const e=tgts[i];if(!e||!state.enemies.includes(e))return;
+        const dmg=Math.floor((G.atkDmg+G.int)*effDmg);e.hp-=dmg;e.hitFlash=1;
+        spawnFloat(ISO.toScreen(e.col,e.row).x,ISO.toScreen(e.col,e.row).y-15,`⚡${dmg}`,'#b0d4ff');
+        if(e.hp<=0)killEnemy(e);
+      },i*110);
+    }
+    gainSpellXp('arcstorm',tgts.length);
   }
 }
 
@@ -892,7 +1124,7 @@ function killEnemy(enemy){
   spawnPart(p.x,p.y,15,'#ff6b35',4,.8);spawnPart(p.x,p.y,8,'#ffd700',3,.6);
   state.golem.xp+=enemy.xp;state.golem.gold+=enemy.gold;state.score+=enemy.xp*2;state.totalKills++;
   addLog(`💀 ${enemy.name} +${enemy.xp}XP +${enemy.gold}G`,'log-loot');
-  if(Math.random()<.3)dropItem(p.x,p.y);
+  if(Math.random()<.10)dropItem(p.x,p.y);
   state.enemies=state.enemies.filter(e=>e!==enemy);
   checkLevelUp();updateUI();renderUpgrades();
 }
@@ -1005,10 +1237,17 @@ function renderSpells(){
     const locked=!s.unlocked;const equipped=isSpellEquipped(s.id);
     const cdPct=def.cd>0?Math.max(0,(1-s.timer/def.cd))*100:100;
     const tagCls=def.tag==='aoe'?'tag-aoe':def.tag==='passive'?'tag-passive':'tag-active';
+    const xpPct=s.spellLvl>=SPELL_MAX_LVL?100:Math.floor(s.spellXp/s.spellXpNext*100);
+    const lvlBadge=s.unlocked?`<span class="spell-lvl-badge">★${s.spellLvl}</span>`:'';
     return `<div class="spell-row${locked?' locked':''}${equipped?' equipped-spell':''}" data-spell-id="${s.id}">
       <div class="spell-ico">${def.icon}</div>
-      <div class="spell-info"><div class="spell-name">${def.name}${locked?` <span style="font-size:8px;color:var(--muted)">LVL ${def.lvl}</span>`:''}</div>
-      <div class="spell-desc">${def.desc}</div><span class="spell-tag ${tagCls}">${(def.tag||'active').toUpperCase()}</span></div>
+      <div class="spell-info">
+        <div class="spell-name">${def.name}${lvlBadge}${locked?` <span style="font-size:9px;color:var(--muted)">LVL ${def.lvl}</span>`:''}</div>
+        <div class="spell-desc">${def.desc}</div>
+        <span class="spell-tag ${tagCls}">${(def.tag||'active').toUpperCase()}</span>
+        ${s.unlocked&&s.spellLvl<SPELL_MAX_LVL?`<div class="spell-xp-bar"><div class="spell-xp-fill" style="width:${xpPct}%"></div></div>`:''}
+        ${s.unlocked&&s.spellLvl>=SPELL_MAX_LVL?`<div style="font-size:9px;color:var(--hp);margin-top:2px;">★ MAÎTRISE MAX</div>`:''}
+      </div>
       <div class="spell-meta">${def.passive?'PASSIF':def.cd?def.cd+'s':'-'}<br/><span style="color:var(--accent)">${def.mp?def.mp+' MP':''}</span></div>
       ${equipped?'<div class="spell-eq-badge">✓ EQ</div>':''}
       ${!locked&&!def.passive&&def.cd>0?`<div class="spell-cd-bar" style="width:${cdPct}%"></div>`:''}
@@ -1087,11 +1326,27 @@ function sellEquippedFromModal(slot){const G=state.golem;const item=G.equipped[s
 function openSpellModal(spellId){
   const def=getSpellDef(spellId);const sp=getSpellState(spellId);if(!def||!sp||!sp.unlocked)return;
   const equipped=isSpellEquipped(spellId);const tagCls=def.tag==='aoe'?'tag-aoe':def.tag==='passive'?'tag-passive':'tag-active';
-  let html=`<div class="spell-detail-header"><div class="spell-detail-ico">${def.icon}</div><div><div class="spell-detail-name">${def.name}</div><div class="spell-detail-sub">${def.passive?'Passif':'Actif'} · LVL ${def.lvl}</div></div></div>`;
+  const xpPct=sp.spellLvl>=SPELL_MAX_LVL?100:Math.floor(sp.spellXp/sp.spellXpNext*100);
+  let html=`<div class="spell-detail-header"><div class="spell-detail-ico">${def.icon}</div>
+    <div><div class="spell-detail-name">${def.name} <span style="font-size:13px;color:var(--gold)">★${sp.spellLvl}</span></div>
+    <div class="spell-detail-sub">${def.passive?'Passif':'Actif'} · Requis LVL ${def.lvl}</div></div></div>`;
   html+=`<div class="spell-detail-desc">${def.desc}</div>`;
   html+=`<div class="spell-tags-row"><span class="spell-tag ${tagCls}">${(def.tag||'active').toUpperCase()}</span>${def.cd?`<span class="spell-stat-chip gold">CD ${def.cd}s</span>`:''}${def.mp?`<span class="spell-stat-chip">${def.mp} MP</span>`:''}</div>`;
-  if(equipped){const slot=state.golem.equippedSpells.indexOf(spellId);html+=`<div style="color:var(--hp);text-align:center;font-size:9px;margin:6px 0">✓ Slot ${slot+1}</div>`;html+=`<button class="modal-btn danger" onclick="unequipSpellFromModal('${spellId}')">↩️ Retirer</button>`;}
-  else{const empty=state.golem.equippedSpells.indexOf(null);if(empty!==-1)html+=`<button class="modal-btn primary" onclick="equipSpellFromModal('${spellId}')">✨ Équiper slot ${empty+1}</button>`;else html+=`<div style="color:var(--danger);text-align:center;font-size:9px;margin:6px 0">Slots pleins</div>`;}
+  // Mastery info
+  html+=`<div style="background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.2);border-radius:5px;padding:8px 10px;margin-bottom:8px;">
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--gold);margin-bottom:5px;">
+      <span>★ MAÎTRISE ${sp.spellLvl}/${SPELL_MAX_LVL}</span>
+      <span>${sp.spellLvl<SPELL_MAX_LVL?sp.spellXp+'/'+sp.spellXpNext+' XP':'MAX'}</span>
+    </div>
+    <div style="height:5px;background:rgba(255,215,0,.15);border-radius:3px;overflow:hidden;">
+      <div style="height:100%;width:${xpPct}%;background:var(--gold);border-radius:3px;transition:width .3s;"></div>
+    </div>
+    ${sp.spellLvl>1?`<div style="font-size:9px;color:var(--text);margin-top:5px;line-height:1.6;">
+      ${!def.passive?`CD: −${Math.round((sp.cdMastery||0)*100)}% · DMG: +${Math.round(((sp.dmgMastery||1)-1)*100)}% · MP: −${sp.mpMastery||0}`:'Efficacité: +'+Math.round(((sp.passiveMastery||1)-1)*100)+'%'}
+    </div>`:'<div style="font-size:9px;color:var(--muted);margin-top:4px;">Utilise ce sort pour gagner de la maîtrise.</div>'}
+  </div>`;
+  if(equipped){const slot=state.golem.equippedSpells.indexOf(spellId);html+=`<div style="color:var(--hp);text-align:center;font-size:11px;margin:6px 0">✓ Équipé — Slot ${slot+1}</div>`;html+=`<button class="modal-btn danger" onclick="unequipSpellFromModal('${spellId}')">↩️ Retirer</button>`;}
+  else{const empty=state.golem.equippedSpells.indexOf(null);if(empty!==-1)html+=`<button class="modal-btn primary" onclick="equipSpellFromModal('${spellId}')">✨ Équiper slot ${empty+1}</button>`;else html+=`<div style="color:var(--danger);text-align:center;font-size:11px;margin:6px 0">Slots pleins</div>`;}
   html+=`<button class="modal-btn muted-btn" onclick="closeModal()">Fermer</button>`;
   openModal(def.icon+' '+def.name,html);
 }
@@ -1111,7 +1366,26 @@ function toggleDrawer(){drawerCollapsed=!drawerCollapsed;drawerWrap.style.height
 document.getElementById('handle-toggle').addEventListener('click',toggleDrawer);
 let tsy=0;document.getElementById('drawer-handle').addEventListener('touchstart',e=>{tsy=e.touches[0].clientY;},{passive:true});
 document.getElementById('drawer-handle').addEventListener('touchend',e=>{const dy=e.changedTouches[0].clientY-tsy;if(dy>30&&!drawerCollapsed)toggleDrawer();else if(dy<-30&&drawerCollapsed)toggleDrawer();},{passive:true});
-document.getElementById('sell-btn').addEventListener('click',()=>{const sold=state.inventory.filter(i=>i.rarity==='common'&&!i.spell);const g=sold.length*2;state.inventory=state.inventory.filter(i=>i.rarity!=='common'||i.spell);state.golem.gold+=g;addLog('💰 '+sold.length+' communs → +'+g+' G','log-loot');renderInventory();updateUI();});
+// ── Auto-vente multi-rareté ───────────────────────────────────────────
+const SELL_ORDER=['common','uncommon','rare','epic','legendary'];
+function sellByRarity(maxRarity){
+  const cutoff=SELL_ORDER.indexOf(maxRarity);
+  const rarToSell=SELL_ORDER.slice(0,cutoff+1);
+  const sold=state.inventory.filter(i=>!i.spell&&rarToSell.includes(i.rarity));
+  if(!sold.length){showToastMsg('Rien à vendre!','#4a5a7a');return;}
+  let gold=0;for(const i of sold)gold+=rarityGoldVal(i.rarity);
+  state.inventory=state.inventory.filter(i=>i.spell||!rarToSell.includes(i.rarity));
+  state.golem.gold+=gold;
+  addLog(`💰 ${sold.length} items vendus → +${gold} G`,'log-loot');
+  renderInventory();updateUI();renderUpgrades();
+}
+document.querySelectorAll('.sell-rarity-btn[data-rarity]').forEach(btn=>{
+  btn.addEventListener('click',()=>sellByRarity(btn.dataset.rarity));
+});
+document.getElementById('sell-all-btn').addEventListener('click',()=>{
+  // Sell everything non-equipped, non-scroll (ie everything common+uncommon+rare)
+  sellByRarity('rare');
+});
 
 // ══ GAME LOOP ══════════════════════════════════════════════════════════
 let lastTime=0,pipT=0;
@@ -1130,20 +1404,20 @@ function gameLoop(ts){
 
 // ══ SAVE / LOAD ════════════════════════════════════════════════════════
 window.addEventListener('beforeunload',()=>{
-  localStorage.setItem('golemExe4',JSON.stringify({
+  localStorage.setItem('golemExe5',JSON.stringify({
     baseStats:state.golem.baseStats,
     golem:{hp:state.golem.hp,mp:state.golem.mp,xp:state.golem.xp,xpNext:state.golem.xpNext,level:state.golem.level,gold:state.golem.gold,atkSpd:state.golem.atkSpd,cdReduction:state.golem.cdReduction,mpRegen:state.golem.mpRegen,hpRegen:state.golem.hpRegen},
     equipped:state.golem.equipped,equippedSpells:state.golem.equippedSpells,
     upgrades:state.golem.upgrades,
     wave:state.wave,score:state.score,inventory:state.inventory,
-    unlockedSpells:state.activeSpells.filter(s=>s.unlocked).map(s=>s.id),
+    spellMastery:state.activeSpells.map(s=>({id:s.id,unlocked:s.unlocked,spellLvl:s.spellLvl,spellXp:s.spellXp,spellXpNext:s.spellXpNext,cdMastery:s.cdMastery,dmgMastery:s.dmgMastery,mpMastery:s.mpMastery,passiveMastery:s.passiveMastery})),
   }));
 });
 
 // ══ INIT ══════════════════════════════════════════════════════════════
 function init(){
   resizeCanvas();initSpells();
-  const sv=localStorage.getItem('golemExe4');
+  const sv=localStorage.getItem('golemExe5')||localStorage.getItem('golemExe4');
   if(sv){try{
     const s=JSON.parse(sv);
     if(s.baseStats)state.golem.baseStats={...s.baseStats};
@@ -1152,11 +1426,22 @@ function init(){
     if(s.equippedSpells)state.golem.equippedSpells=s.equippedSpells;
     if(s.upgrades)state.golem.upgrades={...s.upgrades};
     state.wave=s.wave||1;state.score=s.score||0;state.inventory=s.inventory||[];
-    if(s.unlockedSpells)for(const id of s.unlockedSpells){const sp=getSpellState(id);if(sp)sp.unlocked=true;}
+    // Restore spell mastery
+    if(s.spellMastery){
+      for(const m of s.spellMastery){
+        const sp=getSpellState(m.id);if(!sp)continue;
+        sp.unlocked=m.unlocked||false;
+        sp.spellLvl=m.spellLvl||1;sp.spellXp=m.spellXp||0;sp.spellXpNext=m.spellXpNext||10;
+        if(m.cdMastery)sp.cdMastery=m.cdMastery;if(m.dmgMastery)sp.dmgMastery=m.dmgMastery;
+        if(m.mpMastery)sp.mpMastery=m.mpMastery;if(m.passiveMastery)sp.passiveMastery=m.passiveMastery;
+      }
+    } else if(s.unlockedSpells){
+      for(const id of s.unlockedSpells){const sp=getSpellState(id);if(sp)sp.unlocked=true;}
+    }
     recalcStats();addLog('💾 Partie chargée!','log-spell');
   }catch(e){console.warn(e);}}
   renderInventory();renderEquip();renderSpellSlots();renderSpells();renderUpgrades();updateUI();
-  addLog('⬡ GOLEM.EXE v1.4 — FX + Améliorations!','log-spell');
+  addLog('⬡ GOLEM.EXE v1.5 — Maîtrise des sorts!','log-spell');
   requestAnimationFrame(ts=>{lastTime=ts;gameLoop(ts);});
 }
 init();
