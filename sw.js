@@ -1,5 +1,5 @@
 // GOLEM.EXE — Service Worker v1.0
-const CACHE_NAME = 'golem-exe-v9';
+const CACHE_NAME = 'golem-exe-v10';
 const ASSETS = [
   '/',
   '/index.html',
