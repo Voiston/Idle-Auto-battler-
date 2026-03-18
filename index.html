@@ -336,6 +336,53 @@
     .tt-rarity.rare    {color:var(--c-rare)}.tt-rarity.epic{color:var(--c-epic)}
     .tt-rarity.legendary{color:var(--c-legendary);}
     ::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+    /* ── ACHIEVEMENTS ── */
+    #panel-achievements{padding:10px 12px;overflow-y:auto;}
+    .ach-section-title{font-family:'Cinzel',serif;font-size:10px;color:var(--gold);letter-spacing:2px;margin:8px 0 5px;padding-bottom:3px;border-bottom:1px solid rgba(255,193,7,.15);}
+    .ach-item{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:7px;border:1px solid var(--border2);background:rgba(5,6,12,.5);margin-bottom:4px;transition:all .2s;position:relative;overflow:hidden;}
+    .ach-item.unlocked{border-color:var(--gold);background:rgba(255,193,7,.05);}
+    .ach-item.unlocked::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 0% 50%,rgba(255,193,7,.08) 0%,transparent 70%);pointer-events:none;}
+    .ach-icon{font-size:22px;flex-shrink:0;filter:grayscale(1);opacity:.4;transition:all .3s;}
+    .ach-item.unlocked .ach-icon{filter:grayscale(0);opacity:1;}
+    .ach-info{flex:1;min-width:0;}
+    .ach-name{font-size:11px;color:var(--muted);font-weight:bold;}
+    .ach-item.unlocked .ach-name{color:var(--gold);}
+    .ach-desc{font-size:9px;color:var(--muted);margin-top:1px;}
+    .ach-reward{font-size:9px;color:var(--hp);margin-top:2px;}
+    .ach-progress-bar{height:3px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;margin-top:3px;}
+    .ach-progress-fill{height:100%;background:linear-gradient(90deg,#e65100,var(--gold));border-radius:2px;transition:width .4s;}
+    .ach-badge{font-size:16px;margin-left:auto;flex-shrink:0;}
+
+    /* ── BOSS health bar ── */
+    #boss-bar{
+      position:absolute;top:8px;left:50%;transform:translateX(-50%);
+      width:70%;max-width:260px;
+      background:rgba(5,6,12,.85);backdrop-filter:blur(8px);
+      border:1px solid #8b0000;border-radius:8px;
+      padding:5px 10px;pointer-events:none;
+      display:none;text-align:center;
+    }
+    #boss-name{font-family:'Cinzel',serif;font-size:11px;color:#ff4444;letter-spacing:1px;margin-bottom:4px;}
+    #boss-hp-track{height:8px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;}
+    #boss-hp-fill{height:100%;background:linear-gradient(90deg,#8b0000,#ff1744);border-radius:4px;transition:width .2s;box-shadow:0 0 8px rgba(255,23,68,.5);}
+    #boss-hp-txt{font-size:9px;color:#ff4444;margin-top:2px;}
+    /* boss rage phase */
+    #boss-bar.rage{border-color:#ff6f00;animation:bossPulse 1s ease infinite;}
+    #boss-bar.rage #boss-hp-fill{background:linear-gradient(90deg,#e65100,#ffab00);}
+    @keyframes bossPulse{0%,100%{box-shadow:0 0 6px rgba(255,111,0,.3)}50%{box-shadow:0 0 14px rgba(255,111,0,.7)}}
+
+    /* ── SPELL TIER UPGRADE button ── */
+    .spell-tier-btn{
+      display:inline-block;margin-top:4px;padding:3px 8px;
+      font-size:9px;border-radius:4px;cursor:pointer;
+      border:1px solid var(--gold);color:var(--gold);
+      background:rgba(255,193,7,.08);transition:all .2s;
+      font-family:'Share Tech Mono',monospace;
+    }
+    .spell-tier-btn:active{background:rgba(255,193,7,.2);}
+    .spell-tier-btn.cant-afford{border-color:var(--muted);color:var(--muted);cursor:not-allowed;}
+
     @keyframes waveFlash{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}70%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.1)}}
   </style>
 </head>
@@ -352,6 +399,11 @@
       <div class="bar-row"><div class="bar-lbl">HP</div><div class="bar-track bar-hp"><div class="bar-fill" id="bar-hp" style="width:100%"></div></div><div class="bar-txt" id="val-hp">100/100</div></div>
       <div class="bar-row"><div class="bar-lbl">MP</div><div class="bar-track bar-mp"><div class="bar-fill" id="bar-mp" style="width:100%"></div></div><div class="bar-txt" id="val-mp">50/50</div></div>
       <div class="bar-row"><div class="bar-lbl">XP</div><div class="bar-track bar-xp"><div class="bar-fill" id="bar-xp" style="width:0%"></div></div><div class="bar-txt" id="val-xp">LVL 1</div></div>
+    </div>
+    <div id="boss-bar">
+      <div id="boss-name">BOSS</div>
+      <div id="boss-hp-track"><div id="boss-hp-fill" style="width:100%"></div></div>
+      <div id="boss-hp-txt">???</div>
     </div>
     <div id="spell-pips"></div>
     <div id="state-badge">PATROL</div>
@@ -376,6 +428,7 @@
         <div class="htab" data-tab="equip"><span class="htab-icon">⚔️</span>ÉQUIP</div>
         <div class="htab" data-tab="spells"><span class="htab-icon">✨</span>SORTS</div>
         <div class="htab" data-tab="upgrades"><span class="htab-icon">⬆️</span>AMÉLIO</div>
+        <div class="htab" data-tab="achievements"><span class="htab-icon">🏆</span>DÉFIS</div>
       </div>
       <div id="handle-toggle">▲</div>
     </div>
@@ -418,6 +471,11 @@
           </div>
           <div id="spell-sep">▾ SORTS DISPONIBLES</div>
           <div id="spells-list"></div>
+        </div>
+        <!-- ACHIEVEMENTS -->
+        <div class="drawer-panel" id="panel-achievements">
+          <div class="panel-title">⬡ Défis &amp; Achievements</div>
+          <div id="ach-list"></div>
         </div>
         <!-- UPGRADES -->
         <div class="drawer-panel" id="panel-upgrades">
@@ -467,21 +525,27 @@ const C={
 // ══ UPGRADE TREE DEFINITIONS ══════════════════════════════════════════
 // Each node: id, name, icon, desc, branch, maxLvl, costBase (×tier), effect(G,lvl)
 const UPG_DEFS=[
-  // COMBAT branch
-  {id:'str_up',   name:'Force Brute',    icon:'💪', branch:'combat',   desc:'+3 STR par niveau',      maxLvl:5, costBase:30,  effect:(G,l)=>{G.baseStats.str+=3;}},
-  {id:'atk_up',   name:'Lame Acérée',   icon:'⚔️', branch:'combat',   desc:'+5 ATK par niveau',      maxLvl:5, costBase:40,  effect:(G,l)=>{G.baseStats.atkDmg+=5;}},
-  {id:'aspd_up',  name:'Furie Rapide',   icon:'⚡', branch:'combat',   desc:'+0.1 ATK Speed/niv',     maxLvl:4, costBase:55,  effect:(G,l)=>{G.baseStats.atkSpd+=.1;}},
-  {id:'crit_up',  name:'Œil de Faucon', icon:'🎯', branch:'combat',   desc:'+5% crit/niv',            maxLvl:5, costBase:50,  effect:(G,l)=>{G.baseStats.critChance+=5;}},
-  // MAGIC branch
-  {id:'int_up',   name:'Maîtrise Magi.', icon:'🔮', branch:'magic',   desc:'+4 INT par niveau',       maxLvl:5, costBase:35,  effect:(G,l)=>{G.baseStats.int+=4;}},
-  {id:'mp_up',    name:'Réservoir MP',   icon:'💎', branch:'magic',   desc:'+10 MP MAX/niv',          maxLvl:5, costBase:30,  effect:(G,l)=>{G.baseStats.maxMp+=10;}},
-  {id:'cd_up',    name:'Flux Arcanique', icon:'🌀', branch:'magic',   desc:'−8% CD sorts/niv',        maxLvl:4, costBase:70,  effect:(G,l)=>{G.cdReduction=(G.cdReduction||0)+.08;}},
-  {id:'mpreg_up', name:'Flux Mana',      icon:'✨', branch:'magic',   desc:'+0.5 MP regen/s/niv',    maxLvl:5, costBase:40,  effect:(G,l)=>{G.mpRegen=(G.mpRegen||2)+.5;}},
-  // SURVIVAL branch
-  {id:'hp_up',    name:'Cœur de Pierre', icon:'❤️', branch:'survival', desc:'+20 HP MAX/niv',         maxLvl:6, costBase:25,  effect:(G,l)=>{G.baseStats.maxHp+=20;}},
-  {id:'def_up',   name:'Peau d\'Acier', icon:'🛡️', branch:'survival', desc:'+2 DEF par niveau',       maxLvl:5, costBase:35,  effect:(G,l)=>{G.baseStats.def+=2;}},
-  {id:'regen_up', name:'Régénération',   icon:'🌿', branch:'survival', desc:'+0.5 HP regen/s/niv',    maxLvl:5, costBase:45,  effect:(G,l)=>{G.hpRegen=(G.hpRegen||1)+.5;}},
-  {id:'spd_up',   name:'Légèreté',       icon:'💨', branch:'survival', desc:'+0.5 SPD par niveau',    maxLvl:4, costBase:50,  effect:(G,l)=>{G.baseStats.spd+=.5;}},
+  // ── COMBAT ───────────────────────────────────────────────────────
+  {id:'str_up',   name:'Force Brute',      icon:'💪',branch:'combat',   maxLvl:10,costBase:25, desc:'+3 STR/niv',          effect:(G)=>{G.baseStats.str+=3;}},
+  {id:'atk_up',   name:'Lame Acérée',      icon:'⚔️',branch:'combat',   maxLvl:10,costBase:35, desc:'+5 ATK/niv',          effect:(G)=>{G.baseStats.atkDmg+=5;}},
+  {id:'aspd_up',  name:'Furie Rapide',     icon:'⚡',branch:'combat',   maxLvl:8, costBase:50, desc:'+0.1 ATK Vitesse/niv', effect:(G)=>{G.baseStats.atkSpd+=.1;}},
+  {id:'crit_up',  name:'Oeil de Faucon',   icon:'🎯',branch:'combat',   maxLvl:10,costBase:45, desc:'+5% crit/niv',        effect:(G)=>{G.baseStats.critChance+=5;}},
+  {id:'range_up', name:'Allonge',           icon:'🗡️',branch:'combat',   maxLvl:5, costBase:60, desc:'+0.1 portée attaque', effect:(G)=>{G.atkRange=(G.atkRange||1.6)+.1;}},
+  {id:'vampire',  name:'Vampirisme',        icon:'🩸',branch:'combat',   maxLvl:5, costBase:80, desc:'+2% lifesteal base',  effect:(G)=>{G.baseLifesteal=(G.baseLifesteal||0)+.02;}},
+  // ── MAGIC ────────────────────────────────────────────────────────
+  {id:'int_up',   name:'Maitrise Magique',  icon:'🔮',branch:'magic',    maxLvl:10,costBase:30, desc:'+4 INT/niv',          effect:(G)=>{G.baseStats.int+=4;}},
+  {id:'mp_up',    name:'Reservoir MP',      icon:'💎',branch:'magic',    maxLvl:10,costBase:25, desc:'+10 MP MAX/niv',      effect:(G)=>{G.baseStats.maxMp+=10;}},
+  {id:'cd_up',    name:'Flux Arcanique',    icon:'🌀',branch:'magic',    maxLvl:8, costBase:65, desc:'-6% CD sorts/niv',    effect:(G)=>{G.cdReduction=(G.cdReduction||0)+.06;}},
+  {id:'mpreg_up', name:'Flux Mana',         icon:'✨',branch:'magic',    maxLvl:8, costBase:35, desc:'+0.5 MP regen/s/niv', effect:(G)=>{G.mpRegen=(G.mpRegen||2)+.5;}},
+  {id:'spelldmg', name:'Puissance Arcane',  icon:'⚗️',branch:'magic',    maxLvl:8, costBase:75, desc:'+5% DMG sorts/niv',   effect:(G)=>{G.spellDmgBonus=(G.spellDmgBonus||1)+.05;}},
+  {id:'multicast',name:'Doublon Magique',   icon:'🔁',branch:'magic',    maxLvl:4, costBase:120,desc:'+5% chance double sort',effect:(G)=>{G.multicastChance=(G.multicastChance||0)+.05;}},
+  // ── SURVIE ───────────────────────────────────────────────────────
+  {id:'hp_up',    name:'Coeur de Pierre',   icon:'❤️',branch:'survival', maxLvl:12,costBase:20, desc:'+20 HP MAX/niv',      effect:(G)=>{G.baseStats.maxHp+=20;}},
+  {id:'def_up',   name:"Peau d'Acier",      icon:'🛡️',branch:'survival', maxLvl:10,costBase:30, desc:'+3 DEF/niv',          effect:(G)=>{G.baseStats.def+=3;}},
+  {id:'regen_up', name:'Regeneration',      icon:'🌿',branch:'survival', maxLvl:8, costBase:40, desc:'+0.5 HP regen/s/niv', effect:(G)=>{G.hpRegen=(G.hpRegen||1)+.5;}},
+  {id:'spd_up',   name:'Legerete',          icon:'💨',branch:'survival', maxLvl:8, costBase:45, desc:'+0.5 SPD/niv',        effect:(G)=>{G.baseStats.spd+=.5;}},
+  {id:'tenacity', name:'Tenacite',          icon:'🦾',branch:'survival', maxLvl:5, costBase:90, desc:'+2% reduction degats', effect:(G)=>{G.dmgReduction=(G.dmgReduction||0)+.02;}},
+  {id:'comeback', name:'Deuxieme Souffle',  icon:'💫',branch:'survival', maxLvl:3, costBase:150,desc:'+15% HP resurrection', effect:(G)=>{G.reviveBonus=(G.reviveBonus||.5)+.15;}},
 ];
 
 // ══ VISUAL FX SYSTEM ══════════════════════════════════════════════════
@@ -813,6 +877,7 @@ const state={
   },
   enemies:[],particles:[],inventory:[],activeSpells:[],
   wave:1,score:0,waveTimer:3,waveDelay:5,waveActive:false,totalKills:0,
+  totalCrits:0,bossKills:0,maxWave:0,totalGoldEarned:0,
 };
 
 // ══ UPGRADE ENGINE ════════════════════════════════════════════════════
@@ -1009,6 +1074,37 @@ function initSpells(){
 // active spells: −10% CD, +10% dmg multiplier, −1 MP cost
 // passive spells: +10% effectiveness
 const SPELL_MAX_LVL=10;
+
+// ── Spell tier upgrade (bought with gold once mastery is max) ────────
+const SPELL_TIER_COSTS=[0,200,500,1000,2000,4000,8000,15000,30000,60000]; // tier 0→9
+function spellTierUpgradeCost(s){return SPELL_TIER_COSTS[Math.min(s.spellTier||0, SPELL_TIER_COSTS.length-1)];}
+function buySpellTier(spellId){
+  const G=state.golem;
+  const s=getSpellState(spellId);if(!s||!s.unlocked)return;
+  if(s.spellLvl<SPELL_MAX_LVL){showToastMsg('Maîtrise max requise!','#ef4444');return;}
+  const tier=s.spellTier||0;
+  if(tier>=9){showToastMsg('Tier maximum atteint!','#ffc107');return;}
+  const cost=SPELL_TIER_COSTS[tier];
+  if(G.gold<cost){showToastMsg(`${cost} G requis!`,'#ef4444');return;}
+  G.gold-=cost;
+  s.spellTier=(s.spellTier||0)+1;
+  // Each tier: +15% DMG, -10% CD, -2 MP, +5% effectiveness passifs
+  if(!s.passive){
+    s.dmgMastery=(s.dmgMastery||1)*1.15;
+    s.cdMastery=Math.min(.6,(s.cdMastery||0)+.10);
+    s.mpMastery=(s.mpMastery||0)+2;
+  } else {
+    s.passiveMastery=(s.passiveMastery||1)*1.15;
+  }
+  const def=getSpellDef(spellId);
+  addLog(`🌟 ${def?.name} → TIER ${s.spellTier}!`,'log-spell');
+  showToastMsg(`🌟 ${def?.icon} ${def?.name} Tier ${s.spellTier}!`,'#ffc107');
+  const gp=ISO.toScreen(G.col,G.row);
+  spawnPart(gp.x,gp.y,20,'#ffc107',4,1.2);
+  spawnFloat(gp.x,gp.y-35,`TIER ${s.spellTier}!`,'#ffc107');
+  renderSpells();renderSpellPips();updateUI();
+}
+
 function gainSpellXp(spellId,xpAmt=1){
   const s=getSpellState(spellId);if(!s||!s.unlocked)return;
   if(s.spellLvl>=SPELL_MAX_LVL)return;
@@ -1085,8 +1181,10 @@ function castSpell(def,s,G,cdMult=1){
   // Mastery bonuses
   const effCd  = Math.max(1, def.cd * cdMult * (1-(s.cdMastery||0)));
   const effMp  = Math.max(0, def.mp - (s.mpMastery||0));
-  const effDmg = (def.dmgMult||1) * (s.dmgMastery||1);
+  const effDmg = (def.dmgMult||1) * (s.dmgMastery||1) * (G.spellDmgBonus||1);
   G.mp=Math.max(0,G.mp-effMp); s.timer=effCd;
+  // Multicast: chance to cast twice (costs no extra MP, 50% bonus dmg on echo)
+  const _doMulticast=Math.random()<(G.multicastChance||0);
   const near=state.enemies.slice().sort((a,b)=>dist(G,a)-dist(G,b));
   const p=ISO.toScreen(G.col,G.row);
 
@@ -1210,6 +1308,181 @@ function castSpell(def,s,G,cdMult=1){
   }
 }
 
+
+// ══ ACHIEVEMENT SYSTEM ═══════════════════════════════════════════════
+const ACH_DEFS=[
+  // COMBAT
+  {id:'first_blood',  icon:'🩸',name:'Premier Sang',    desc:'Tuer le premier ennemi',       cat:'combat', target:1,   stat:'totalKills',    reward:'+5% ATK permanent',  bonusFn:(G)=>{G.baseStats.atkDmg=Math.floor(G.baseStats.atkDmg*1.05);}},
+  {id:'slayer_100',   icon:'💀',name:'Cent Lames',       desc:'100 ennemis tués',              cat:'combat', target:100, stat:'totalKills',    reward:'+3 STR permanent',   bonusFn:(G)=>{G.baseStats.str+=3;}},
+  {id:'slayer_500',   icon:'⚔️',name:'Boucher',          desc:'500 ennemis tués',              cat:'combat', target:500, stat:'totalKills',    reward:'+8 ATK permanent',   bonusFn:(G)=>{G.baseStats.atkDmg+=8;}},
+  {id:'slayer_1000',  icon:'🔱',name:'Exterminateur',    desc:'1000 ennemis tués',             cat:'combat', target:1000,stat:'totalKills',    reward:'+15% crit chance',   bonusFn:(G)=>{G.baseStats.critChance+=15;}},
+  {id:'crit_50',      icon:'🎯',name:'Tireur d'Élite', desc:'50 coups critiques',             cat:'combat', target:50,  stat:'totalCrits',    reward:'+0.2 ATK Speed',    bonusFn:(G)=>{G.baseStats.atkSpd+=.2;}},
+  {id:'crit_500',     icon:'⚡',name:'Instinct Prédateur',desc:'500 critiques',                cat:'combat', target:500, stat:'totalCrits',    reward:'+10% dmg critique',  bonusFn:(G)=>{G.critDmgBonus=(G.critDmgBonus||0)+.10;}},
+  // VAGUES
+  {id:'wave_5',       icon:'🌊',name:'Survivant',        desc:'Atteindre la vague 5',          cat:'waves',  target:5,   stat:'maxWave',       reward:'+20 HP MAX',        bonusFn:(G)=>{G.baseStats.maxHp+=20;}},
+  {id:'wave_10',      icon:'🌋',name:'Guerrier',         desc:'Atteindre la vague 10',         cat:'waves',  target:10,  stat:'maxWave',       reward:'+5 DEF permanent',  bonusFn:(G)=>{G.baseStats.def+=5;}},
+  {id:'wave_20',      icon:'👑',name:'Conquérant',       desc:'Atteindre la vague 20',         cat:'waves',  target:20,  stat:'maxWave',       reward:'+10 INT permanent', bonusFn:(G)=>{G.baseStats.int+=10;}},
+  {id:'wave_50',      icon:'🌌',name:'Légendaire',       desc:'Atteindre la vague 50',         cat:'waves',  target:50,  stat:'maxWave',       reward:'Sort Slot bonus',   bonusFn:(G)=>{/* handled separately */}},
+  {id:'boss_first',   icon:'💥',name:'Chasseur de Boss', desc:'Tuer le premier boss',          cat:'waves',  target:1,   stat:'bossKills',     reward:'+10% or des drops', bonusFn:(G)=>{G.goldBonus=(G.goldBonus||1)+.10;}},
+  {id:'boss_10',      icon:'🏆',name:'Dompteur de Titans',desc:'10 boss tués',                 cat:'waves',  target:10,  stat:'bossKills',     reward:'+1 Slot de sort',   bonusFn:(G)=>{/* handled separately */}},
+  // OR
+  {id:'gold_1000',    icon:'💰',name:'Commerçant',       desc:'Accumuler 1000 gold (total)',   cat:'economy',target:1000,stat:'totalGoldEarned',reward:'+5% vitesse MP regen',bonusFn:(G)=>{G.mpRegen=(G.mpRegen||2)+.5;}},
+  {id:'gold_10000',   icon:'💎',name:'Trésorier',        desc:'Accumuler 10000 gold (total)',  cat:'economy',target:10000,stat:'totalGoldEarned',reward:'+25 HP MAX',       bonusFn:(G)=>{G.baseStats.maxHp+=25;}},
+  // MAGIE
+  {id:'spell_first',  icon:'📖',name:'Apprenti Mage',    desc:'Apprendre le premier sort',     cat:'magic',  target:1,   stat:'totalSpellsLearned',reward:'+5 INT',        bonusFn:(G)=>{G.baseStats.int+=5;}},
+  {id:'spell_all',    icon:'🌟',name:'Grimoire Complet', desc:'Apprendre tous les sorts',      cat:'magic',  target:15,  stat:'totalSpellsLearned',reward:'+15% DMG sorts', bonusFn:(G)=>{G.spellDmgBonus=(G.spellDmgBonus||1)+.15;}},
+  {id:'mastery_first',icon:'⭐',name:'Maître Sort',      desc:'Un sort à maîtrise MAX',        cat:'magic',  target:1,   stat:'totalMaxMastery',reward:'+10 MP MAX',       bonusFn:(G)=>{G.baseStats.maxMp+=10;}},
+  {id:'tier_first',   icon:'🌟',name:'Élu Arcanique',   desc:'Un sort au TIER 1',              cat:'magic',  target:1,   stat:'totalSpellTiers',reward:'+8% DMG sorts',    bonusFn:(G)=>{G.spellDmgBonus=(G.spellDmgBonus||1)+.08;}},
+];
+
+const state_ach={unlocked:new Set(),progress:{}};
+
+function getAchProgress(id){
+  const def=ACH_DEFS.find(a=>a.id===id);if(!def)return 0;
+  const G=state.golem;
+  const stats={
+    totalKills:state.totalKills,
+    totalCrits:state.totalCrits||0,
+    maxWave:state.maxWave||state.wave,
+    bossKills:state.bossKills||0,
+    totalGoldEarned:state.totalGoldEarned||0,
+    totalSpellsLearned:state.activeSpells.filter(s=>s.unlocked).length,
+    totalMaxMastery:state.activeSpells.filter(s=>s.spellLvl>=SPELL_MAX_LVL).length,
+    totalSpellTiers:state.activeSpells.reduce((n,s)=>n+(s.spellTier||0),0),
+  };
+  return stats[def.stat]||0;
+}
+
+function checkAchievements(){
+  const G=state.golem;
+  for(const def of ACH_DEFS){
+    if(state_ach.unlocked.has(def.id))continue;
+    const prog=getAchProgress(def.id);
+    if(prog>=def.target){
+      state_ach.unlocked.add(def.id);
+      def.bonusFn(G);
+      recalcStats();
+      addLog(`🏆 DÉFI: ${def.name}! ${def.reward}`,'log-spell');
+      showToastMsg(`🏆 ${def.icon} ${def.name}\n${def.reward}`,'#ffc107');
+      const gp=ISO.toScreen(G.col,G.row);
+      spawnPart(gp.x,gp.y,25,'#ffc107',5,1.5);
+      spawnFloat(gp.x,gp.y-40,'🏆 DÉFI!','#ffc107');
+      renderAchievements();
+    }
+  }
+}
+
+function renderAchievements(){
+  const list=document.getElementById('ach-list');if(!list)return;
+  const cats={combat:'⚔️ Combat',waves:'🌊 Vagues',economy:'💰 Économie',magic:'✨ Magie'};
+  let html='';
+  for(const[cat,label] of Object.entries(cats)){
+    const defs=ACH_DEFS.filter(a=>a.cat===cat);
+    html+=`<div class="ach-section-title">${label}</div>`;
+    for(const def of defs){
+      const unlocked=state_ach.unlocked.has(def.id);
+      const prog=Math.min(def.target,getAchProgress(def.id));
+      const pct=Math.floor(prog/def.target*100);
+      html+=`<div class="ach-item${unlocked?' unlocked':''}">
+        <div class="ach-icon">${def.icon}</div>
+        <div class="ach-info">
+          <div class="ach-name">${def.name}</div>
+          <div class="ach-desc">${def.desc}</div>
+          <div class="ach-reward">${unlocked?'✓ ':''}${def.reward}</div>
+          ${!unlocked?`<div class="ach-progress-bar"><div class="ach-progress-fill" style="width:${pct}%"></div></div>
+          <div style="font-size:8px;color:var(--muted);margin-top:1px">${prog}/${def.target}</div>`:''}
+        </div>
+        <div class="ach-badge">${unlocked?'✅':''}</div>
+      </div>`;
+    }
+  }
+  list.innerHTML=html;
+}
+
+
+// ══ BOSS SYSTEM ═══════════════════════════════════════════════════════
+const BOSS_DEFS=[
+  {name:'Gardien Corrompu',  icon:'👹',color:'#c62828',hp:600, dmg:25,spd:.6, xp:200,gold:80, draw:drawBrute},
+  {name:'Archonte des Glaces',icon:'❄️',color:'#1565c0',hp:900, dmg:20,spd:.8, xp:300,gold:120,draw:drawWraith},
+  {name:'Titan Infernal',    icon:'🌋',color:'#bf360c',hp:1500,dmg:35,spd:.5, xp:500,gold:200,draw:drawBrute},
+  {name:'Hydre Venimeuse',   icon:'🐉',color:'#1b5e20',hp:2200,dmg:30,spd:.7, xp:800,gold:350,draw:drawBrute},
+  {name:'Seigneur du Néant', icon:'💀',color:'#4a148c',hp:3500,dmg:50,spd:.55,xp:1500,gold:600,draw:drawWraith},
+];
+
+function isBossWave(wave){return wave>0&&wave%5===0;}
+
+function spawnBoss(wave){
+  const bossIdx=Math.floor(wave/5)-1;
+  const def=BOSS_DEFS[Math.min(bossIdx,BOSS_DEFS.length-1)];
+  const sc=1+wave*.08;
+  const boss={
+    id:'boss_'+Date.now(),type:'boss',isBoss:true,
+    col:8,row:0,
+    hp:Math.floor(def.hp*sc),maxHp:Math.floor(def.hp*sc),
+    dmg:Math.floor(def.dmg*sc),spd:def.spd,range:1.8,
+    xp:Math.floor(def.xp*sc),gold:Math.floor(def.gold*sc),threat:5,
+    name:def.name,color:def.color,
+    atkTimer:2,hitFlash:0,animTimer:0,animFrame:0,
+    draw:drawBoss,facing:1,slow:0,
+    inRage:false,rageTriggered:false,
+    bossIcon:def.icon,
+  };
+  state.enemies.push(boss);
+  state.waveActive=true;
+  showWaveNotif(`⚠ BOSS!`);
+  addLog(`💥 ${def.name} est apparu! Vague ${wave}`,'log-warn');
+  document.getElementById('boss-bar').style.display='block';
+  updateBossBar(boss);
+}
+
+function updateBossBar(boss){
+  if(!boss||!boss.isBoss){document.getElementById('boss-bar').style.display='none';return;}
+  const pct=Math.max(0,boss.hp/boss.maxHp*100);
+  document.getElementById('boss-name').textContent=boss.bossIcon+' '+boss.name;
+  document.getElementById('boss-hp-fill').style.width=pct+'%';
+  document.getElementById('boss-hp-txt').textContent=Math.ceil(boss.hp)+' / '+boss.maxHp+' HP';
+  const bar=document.getElementById('boss-bar');
+  if(boss.inRage)bar.classList.add('rage');else bar.classList.remove('rage');
+}
+
+function drawBoss(cx,x,y,e){
+  const bob=Math.sin(e.animFrame*Math.PI*.4)*2;cx.save();cx.translate(x,y+bob);
+  if(e.hitFlash>0){cx.globalAlpha=.5+e.hitFlash*.5;cx.globalCompositeOperation='lighter';}
+  // Shadow bigger
+  cx.save();cx.globalAlpha=.35;cx.fillStyle='#000';cx.beginPath();cx.ellipse(0,8,24,9,0,0,Math.PI*2);cx.fill();cx.restore();
+  // RAGE aura
+  if(e.inRage){
+    cx.globalAlpha=.25+Math.sin(vfxTime*6)*.15;
+    cx.fillStyle='#ff6f00';cx.beginPath();cx.ellipse(0,-10,28,28,0,0,Math.PI*2);cx.fill();
+    cx.globalAlpha=cx.hitFlash>0?.5:1;
+  }
+  // Body — big version of brute
+  const bc=e.color||'#7d3c98';
+  cx.fillStyle=bc;cx.fillRect(-16,-30,32,30);
+  cx.fillStyle='rgba(0,0,0,.25)';cx.fillRect(-14,-28,14,14);
+  // Eyes — glowing
+  cx.fillStyle=e.inRage?'#ffab00':'#ef5350';
+  cx.globalAlpha=.9+Math.sin(vfxTime*5)*.1;
+  cx.fillRect(-10,-22,6,6);cx.fillRect(4,-22,6,6);cx.globalAlpha=1;
+  // Arms
+  cx.fillStyle=bc;
+  cx.fillRect(-22,-24+Math.sin(e.animFrame*Math.PI*.5)*3,8,20);
+  cx.fillRect(14,-24-Math.sin(e.animFrame*Math.PI*.5)*3,8,20);
+  // Legs
+  const ls=e.animFrame%2===0?2:0;
+  cx.fillRect(-12,-1+ls,9,10);cx.fillRect(3,-1+(2-ls),9,10);
+  cx.restore();
+  // Boss HP bar — bigger
+  const h=5,f=Math.max(0,e.hp/e.maxHp),col=e.inRage?'#ffab00':'#f44336';
+  cx.fillStyle='rgba(0,0,0,.7)';cx.fillRect(x-22,y-42-h-1,44,h);
+  cx.fillStyle=col;cx.fillRect(x-22,y-42-h-1,44*f,h);
+  cx.strokeStyle='rgba(255,0,0,.3)';cx.lineWidth=.5;cx.strokeRect(x-22,y-42-h-1,44,h);
+  // Name tag
+  cx.fillStyle='rgba(0,0,0,.7)';cx.fillRect(x-25,y-56,50,12);
+  cx.fillStyle='#ef5350';cx.font='bold 8px Share Tech Mono';cx.textAlign='center';
+  cx.fillText(e.name.substring(0,12),x,y-47);
+}
+
 // ══ HELPERS ═══════════════════════════════════════════════════════════
 function dist(a,b){return Math.sqrt((a.col-b.col)**2+(a.row-b.row)**2);}
 function rnd(a,b){return a+Math.random()*(b-a);}
@@ -1221,6 +1494,14 @@ function addLog(msg,cls=''){logLines.push({msg,cls});if(logLines.length>5)logLin
 // ══ WAVE ══════════════════════════════════════════════════════════════
 function showWaveNotif(t){const el=document.getElementById('wave-notif');el.textContent=t;el.style.animation='none';el.offsetHeight;el.style.animation='waveFlash 2s ease forwards';}
 function spawnWave(wave){
+  // Track max wave reached
+  if(wave>(state.maxWave||0))state.maxWave=wave;
+  checkAchievements();
+  if(isBossWave(wave)){
+    spawnBoss(wave);
+    return;
+  }
+  document.getElementById('boss-bar').style.display='none';
   const count=3+wave*2;
   const pools=[['grunt','slime'],['grunt','slime','archer'],['grunt','archer','brute'],['archer','brute','wraith'],['brute','wraith']];
   const pool=pools[Math.min(wave-1,pools.length-1)];
@@ -1269,22 +1550,40 @@ function attackBehavior(G,enemy,dt){
     const ep=ISO.toScreen(enemy.col,enemy.row);
     fxSlash(ep.x,ep.y,crit);
     const ls=getSpellState('lifesteal');
-    if(ls?.unlocked){const leechRate=Math.min(.45,.20+G.int*.003);const heal=Math.floor(dmg*leechRate*(ls.passiveMastery||1));G.hp=Math.min(G.maxHp,G.hp+heal);const gp=ISO.toScreen(G.col,G.row);fxLifesteal(ep.x,ep.y,gp.x,gp.y);}
+    if(ls?.unlocked){const leechRate=Math.min(.55,(.20+(G.baseLifesteal||0))+G.int*.003);const heal=Math.floor(dmg*leechRate*(ls.passiveMastery||1));G.hp=Math.min(G.maxHp,G.hp+heal);const gp=ISO.toScreen(G.col,G.row);fxLifesteal(ep.x,ep.y,gp.x,gp.y);}
     spawnFloat(ep.x,ep.y-20,crit?`⚡${dmg}!`:`-${dmg}`,crit?'#ffd700':'#ff6b35');
     spawnPart(ep.x,ep.y,crit?10:5,'#ff6b35',3);
-    if(crit)addLog(`⚡ CRIT ${enemy.name} −${dmg}`,'log-dmg');
+    if(crit){addLog(`⚡ CRIT ${enemy.name} −${dmg}`,'log-dmg');state.totalCrits=(state.totalCrits||0)+1;}
     G.atkTimer=1/G.atkSpd;if(enemy.hp<=0)killEnemy(enemy);
   }
 }
 function killEnemy(enemy){
   if(!state.enemies.includes(enemy))return;
+  if(enemy.isBoss){
+    state.bossKills=(state.bossKills||0)+1;
+    document.getElementById('boss-bar').style.display='none';
+    addLog(`💥 BOSS ${enemy.name} vaincu! +${Math.floor(enemy.gold*(state.golem.goldBonus||1))} G`,'log-loot');
+    checkAchievements();
+    // Guaranteed epic+ drop
+    const bossRar=Math.random()<.3?'legendary':'epic';
+    const pool=ITEMS.filter(i=>i.rarity===bossRar);
+    if(pool.length&&state.inventory.length<24){
+      const tmpl=pool[Math.floor(Math.random()*pool.length)];
+      const ep2=ISO.toScreen(enemy.col,enemy.row);
+      state.inventory.push({...tmpl,uid:Date.now()+Math.random()});
+      addLog(`💎 DROP BOSS: ${tmpl.name} (${bossRar})!`,'log-loot');
+      spawnFloat(ep2.x,ep2.y-30,tmpl.icon+'✨','#ffc107');
+    }
+  }
   const p=ISO.toScreen(enemy.col,enemy.row);
   spawnPart(p.x,p.y,15,'#ff6b35',4,.8);spawnPart(p.x,p.y,8,'#ffd700',3,.6);
-  state.golem.xp+=enemy.xp;state.golem.gold+=enemy.gold;state.score+=enemy.xp*2;state.totalKills++;
+  const goldDrop=Math.floor(enemy.gold*(state.golem.goldBonus||1));
+  state.golem.xp+=enemy.xp;state.golem.gold+=goldDrop;state.totalGoldEarned=(state.totalGoldEarned||0)+goldDrop;
+  state.score+=enemy.xp*2;state.totalKills++;
   addLog(`💀 ${enemy.name} +${enemy.xp}XP +${enemy.gold}G`,'log-loot');
   if(Math.random()<.10)dropItem(p.x,p.y);
   state.enemies=state.enemies.filter(e=>e!==enemy);
-  checkLevelUp();updateUI();renderUpgrades();
+  checkLevelUp();checkAchievements();updateUI();renderUpgrades();
 }
 function checkLevelUp(){
   const G=state.golem;
@@ -1302,9 +1601,16 @@ function updateEnemies(dt){
   const G=state.golem;
   for(const e of state.enemies){
     e.animTimer+=dt;e.atkTimer-=dt;if(e.animTimer>.3){e.animTimer=0;e.animFrame=(e.animFrame+1)%4;}if(e.hitFlash>0)e.hitFlash-=dt*4;
+    // Boss rage phase at 50% HP
+    if(e.isBoss&&!e.rageTriggered&&e.hp<=e.maxHp*.5){
+      e.rageTriggered=true;e.inRage=true;e.spd*=1.4;e.dmg=Math.floor(e.dmg*1.3);
+      addLog(`⚠ ${e.name} entre en RAGE!`,'log-warn');
+      spawnPart(ISO.toScreen(e.col,e.row).x,ISO.toScreen(e.col,e.row).y,20,'#ff6f00',5,1.2);
+    }
+    if(e.isBoss){updateBossBar(e);}
     const sM=e.slow>0?(1-e.slow):1;const d=dist(e,G);
     if(d>e.range){const s=e.spd*sM*dt,f=Math.min(s/d,1);const dc=(G.col-e.col)*f,dr=(G.row-e.row)*f;e.col+=dc;e.row+=dr;e.facing=dc>0?1:-1;}
-    else{e.facing=G.col>e.col?1:-1;if(e.atkTimer<=0){const physRed=Math.floor(G.def*.6);const dmg=Math.max(1,e.dmg-physRed);G.hp-=dmg;G.hitFlash=1;e.atkTimer=1.2/e.spd;const p=ISO.toScreen(G.col,G.row);spawnFloat(p.x,p.y-15,`-${dmg}`,'#ef4444');spawnPart(p.x,p.y,4,'#ef4444',2);if(G.hp<=0){G.hp=0;handleDeath();}}}
+    else{e.facing=G.col>e.col?1:-1;if(e.atkTimer<=0){const physRed=Math.floor(G.def*.6);let dmg=Math.max(1,e.dmg-physRed);dmg=Math.floor(dmg*(1-(G.dmgReduction||0)));G.hp-=dmg;G.hitFlash=1;e.atkTimer=1.2/e.spd;const p=ISO.toScreen(G.col,G.row);spawnFloat(p.x,p.y-15,`-${dmg}`,'#ef4444');spawnPart(p.x,p.y,4,'#ef4444',2);if(G.hp<=0){G.hp=0;handleDeath();}}}
   }
 }
 function handleDeath(){
@@ -1319,7 +1625,7 @@ function handleDeath(){
     state.waveTimer=4;
     state.enemies=[];
     // Revive golem at half HP/MP
-    G.hp=G.maxHp*.5;
+    G.hp=G.maxHp*(G.reviveBonus||.5);
     G.mp=G.maxMp*.5;
     G.col=8;G.row=8;
     G.gstate='patrol';G.hitFlash=0;
@@ -1419,11 +1725,12 @@ function renderSpells(){
     const cdPct=def.cd>0?Math.max(0,(1-s.timer/def.cd))*100:100;
     const tagCls=def.tag==='aoe'?'tag-aoe':def.tag==='passive'?'tag-passive':'tag-active';
     const xpPct=s.spellLvl>=SPELL_MAX_LVL?100:Math.floor(s.spellXp/s.spellXpNext*100);
+    const tierBadge=(s.spellTier||0)>0?`<span style="font-size:9px;color:#ffd54f;background:rgba(255,193,7,.15);border:1px solid rgba(255,193,7,.3);border-radius:4px;padding:1px 4px;margin-left:3px;">T${s.spellTier}</span>`:'';
     const lvlBadge=s.unlocked?`<span class="spell-lvl-badge">★${s.spellLvl}</span>`:'';
     return `<div class="spell-row${locked?' locked':''}${equipped?' equipped-spell':''}" data-spell-id="${s.id}">
       <div class="spell-ico">${def.icon}</div>
       <div class="spell-info">
-        <div class="spell-name">${def.name}${lvlBadge}${locked?` <span style="font-size:9px;color:var(--muted)">LVL ${def.lvl}</span>`:''}</div>
+        <div class="spell-name">${def.name}${lvlBadge}${tierBadge}${locked?` <span style="font-size:9px;color:var(--muted)">LVL ${def.lvl}</span>`:''}</div>
         <div class="spell-desc">${def.desc}</div>
         <span class="spell-tag ${tagCls}">${(def.tag||'active').toUpperCase()}</span>
         ${s.unlocked&&s.spellLvl<SPELL_MAX_LVL?`<div class="spell-xp-bar"><div class="spell-xp-fill" style="width:${xpPct}%"></div></div>`:''}
@@ -1579,18 +1886,21 @@ function gameLoop(ts){
   if(state.golem.hp>0){updateGolem(dt);updateEnemies(dt);}
   updateParticles(dt);updateVfx(dt);drawScene();
   pipT+=dt;if(pipT>.25){pipT=0;renderSpellPips();}
+  if(Math.floor(ts/2000)!==Math.floor((ts-dt*1000)/2000)){renderAchievements();}
   if(Math.floor(ts/100)!==Math.floor((ts-dt*1000)/100)){updateUI();renderUpgrades();}
   requestAnimationFrame(gameLoop);
 }
 
 // ══ SAVE / LOAD ════════════════════════════════════════════════════════
 window.addEventListener('beforeunload',()=>{
-  localStorage.setItem('golemExe5',JSON.stringify({
+  localStorage.setItem('golemExe6',JSON.stringify({
     baseStats:state.golem.baseStats,
     golem:{hp:state.golem.hp,mp:state.golem.mp,xp:state.golem.xp,xpNext:state.golem.xpNext,level:state.golem.level,gold:state.golem.gold,atkSpd:state.golem.atkSpd,cdReduction:state.golem.cdReduction,mpRegen:state.golem.mpRegen,hpRegen:state.golem.hpRegen},
     equipped:state.golem.equipped,equippedSpells:state.golem.equippedSpells,
     upgrades:state.golem.upgrades,
     wave:state.wave,score:state.score,inventory:state.inventory,
+    totalKills:state.totalKills,totalCrits:state.totalCrits,bossKills:state.bossKills,maxWave:state.maxWave,totalGoldEarned:state.totalGoldEarned,
+    achievements:[...state_ach.unlocked],
     spellMastery:state.activeSpells.map(s=>({id:s.id,unlocked:s.unlocked,spellLvl:s.spellLvl,spellXp:s.spellXp,spellXpNext:s.spellXpNext,cdMastery:s.cdMastery,dmgMastery:s.dmgMastery,mpMastery:s.mpMastery,passiveMastery:s.passiveMastery})),
   }));
 });
@@ -1598,7 +1908,7 @@ window.addEventListener('beforeunload',()=>{
 // ══ INIT ══════════════════════════════════════════════════════════════
 function init(){
   resizeCanvas();initSpells();
-  const sv=localStorage.getItem('golemExe5')||localStorage.getItem('golemExe4');
+  const sv=localStorage.getItem('golemExe6')||localStorage.getItem('golemExe5')||localStorage.getItem('golemExe4');
   if(sv){try{
     const s=JSON.parse(sv);
     if(s.baseStats)state.golem.baseStats={...s.baseStats};
@@ -1619,10 +1929,16 @@ function init(){
     } else if(s.unlockedSpells){
       for(const id of s.unlockedSpells){const sp=getSpellState(id);if(sp)sp.unlocked=true;}
     }
+    if(s.totalKills)state.totalKills=s.totalKills;
+    if(s.totalCrits)state.totalCrits=s.totalCrits;
+    if(s.bossKills)state.bossKills=s.bossKills;
+    if(s.maxWave)state.maxWave=s.maxWave;
+    if(s.totalGoldEarned)state.totalGoldEarned=s.totalGoldEarned;
+    if(s.achievements)for(const id of s.achievements)state_ach.unlocked.add(id);
     recalcStats();addLog('💾 Partie chargée!','log-spell');
   }catch(e){console.warn(e);}}
-  renderInventory();renderEquip();renderSpellSlots();renderSpells();renderUpgrades();updateUI();
-  addLog('⬡ GOLEM.EXE v1.5 — Maîtrise des sorts!','log-spell');
+  renderInventory();renderEquip();renderSpellSlots();renderSpells();renderUpgrades();renderAchievements();updateUI();
+  addLog('⬡ GOLEM.EXE v2.0 — Boss + Défis + Tiers!','log-spell');
   requestAnimationFrame(ts=>{lastTime=ts;gameLoop(ts);});
 }
 init();
