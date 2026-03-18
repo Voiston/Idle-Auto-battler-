@@ -462,7 +462,7 @@
         </div>
         <!-- SPELLS -->
         <div class="drawer-panel" id="panel-spells">
-          <div class="panel-title">⬡ Sorts équipés (max 4)</div>
+          <div class="panel-title">⬡ Sorts équipés (<span id="spell-slot-count">4</span> slots)</div>
           <div id="spell-slots-row">
             <div class="spell-slot" data-spell-slot="0"><span class="spell-slot-ico">＋</span><div class="spell-slot-lbl">SORT 1</div><span class="ss-x">✕</span></div>
             <div class="spell-slot" data-spell-slot="1"><span class="spell-slot-ico">＋</span><div class="spell-slot-lbl">SORT 2</div><span class="ss-x">✕</span></div>
@@ -511,15 +511,32 @@ function resizeCanvas(){canvas.width=cZone.clientWidth;canvas.height=cZone.clien
 window.addEventListener('resize',resizeCanvas);resizeCanvas();
 
 // ── ISO ───────────────────────────────────────────────────────────────
-const ISO={tileW:48,tileH:24,cols:16,rows:16,
-  toScreen(c,r){return{x:canvas.width/2+(c-r)*this.tileW/2,y:canvas.height*.17+(c+r)*this.tileH/2};}
+const ISO={
+  tileW:44,tileH:22,
+  // Monde infini — plus de cols/rows stricts, caméra centrée sur le Golem
+  get camCol(){return state?.golem?.col||8;},
+  get camRow(){return state?.golem?.row||8;},
+  toScreen(c,r){
+    const cx=canvas.width/2,cy=canvas.height*.42;
+    return{
+      x:cx+(c-this.camCol-(r-this.camRow))*this.tileW/2,
+      y:cy+(c-this.camCol+(r-this.camRow))*this.tileH/2,
+    };
+  },
+  // Convertit des pixels en coordonnées monde (pour spawn hors écran)
+  tilesVisible(){
+    // Combien de tiles couvrent l'écran dans chaque direction
+    const hw=Math.ceil(canvas.width /this.tileW)+4;
+    const hh=Math.ceil(canvas.height/this.tileH)+4;
+    return{hw,hh};
+  },
 };
 const C={
   golem:{body:'#4a7aff',core:'#00e5ff',joint:'#1a3a8f'},
   grunt:{body:'#c0392b',eye:'#ff6b35'},brute:{body:'#7d3c98',eye:'#e74c3c'},
   slime:{body:'#27ae60',eye:'#a9dfbf'},archer:{body:'#e67e22',eye:'#f39c12'},
   wraith:{body:'#2c3e50',eye:'#9b59b6'},
-  tile:{a:'#0a1a30',b:'#0d1f38',line:'#152535'},
+  tile:{a:'#0a1a30',b:'#0d1f38',c:'#0b1c35',line:'#152535'},
 };
 
 // ══ UPGRADE TREE DEFINITIONS ══════════════════════════════════════════
@@ -871,6 +888,7 @@ const state={
     patrol:{col:8,row:8},patrolTimer:0,facing:1,animFrame:0,animTimer:0,hitFlash:0,
     equipped:{head:null,body:null,arm1:null,arm2:null,belt:null,boots:null},
     equippedSpells:[null,null,null,null],
+    spellSlotsMax:4,
     baseStats:{...JSON.parse(JSON.stringify(BASE_STATS))},
     cdReduction:0,mpRegen:2,hpRegen:1,
     upgrades:{}, // id→level
@@ -1137,8 +1155,9 @@ function getSpellDef(id){return SPELL_DEFS.find(s=>s.id===id);}
 function getSpellState(id){return state.activeSpells.find(s=>s.id===id);}
 function isSpellEquipped(id){return state.golem.equippedSpells.includes(id);}
 function equipSpell(id,slot){
-  const prev=state.golem.equippedSpells.indexOf(id);if(prev!==-1)state.golem.equippedSpells[prev]=null;
-  state.golem.equippedSpells[slot]=id;
+  const G=state.golem;if(slot>=(G.spellSlotsMax||4))return;
+  const prev=G.equippedSpells.indexOf(id);if(prev!==-1)G.equippedSpells[prev]=null;
+  G.equippedSpells[slot]=id;
   addLog(`✨ ${getSpellDef(id)?.name} slot ${slot+1}`,'log-spell');
   renderSpellSlots();renderSpells();renderSpellPips();
 }
@@ -1185,6 +1204,7 @@ function castSpell(def,s,G,cdMult=1){
   G.mp=Math.max(0,G.mp-effMp); s.timer=effCd;
   // Multicast: chance to cast twice (costs no extra MP, 50% bonus dmg on echo)
   const _doMulticast=Math.random()<(G.multicastChance||0);
+  // Multicast flag stored for post-cast echo (handled at end of castSpell)
   const near=state.enemies.slice().sort((a,b)=>dist(G,a)-dist(G,b));
   const p=ISO.toScreen(G.col,G.row);
 
@@ -1306,6 +1326,16 @@ function castSpell(def,s,G,cdMult=1){
     }
     gainSpellXp('arcstorm',tgts.length);
   }
+  // ── Multicast echo (50% bonus DMG, no MP cost, slight delay) ─────────
+  if(_doMulticast&&state.enemies.length>0){
+    setTimeout(()=>{
+      if(state.enemies.length===0)return;
+      const echoDef={...def,dmgMult:(def.dmgMult||1)*.5,dotDur:(def.dotDur||3)*.5};
+      const echoS={...s,timer:0,mpMastery:999}; // no MP on echo
+      addLog(`🔁 ECHO: ${def.name}!`,'log-spell');
+      castSpell(echoDef,echoS,G,1);
+    },400);
+  }
 }
 
 
@@ -1322,9 +1352,9 @@ const ACH_DEFS=[
   {id:'wave_5',       icon:'🌊',name:'Survivant',        desc:'Atteindre la vague 5',          cat:'waves',  target:5,   stat:'maxWave',       reward:'+20 HP MAX',        bonusFn:(G)=>{G.baseStats.maxHp+=20;}},
   {id:'wave_10',      icon:'🌋',name:'Guerrier',         desc:'Atteindre la vague 10',         cat:'waves',  target:10,  stat:'maxWave',       reward:'+5 DEF permanent',  bonusFn:(G)=>{G.baseStats.def+=5;}},
   {id:'wave_20',      icon:'👑',name:'Conquérant',       desc:'Atteindre la vague 20',         cat:'waves',  target:20,  stat:'maxWave',       reward:'+10 INT permanent', bonusFn:(G)=>{G.baseStats.int+=10;}},
-  {id:'wave_50',      icon:'🌌',name:'Légendaire',       desc:'Atteindre la vague 50',         cat:'waves',  target:50,  stat:'maxWave',       reward:'Sort Slot bonus',   bonusFn:(G)=>{/* handled separately */}},
+  {id:'wave_50',      icon:'🌌',name:'Légendaire',       desc:'Atteindre la vague 50',         cat:'waves',  target:50,  stat:'maxWave',       reward:'+1 Slot de sort',   bonusFn:(G)=>{if((G.spellSlotsMax||4)<6){G.spellSlotsMax=(G.spellSlotsMax||4)+1;G.equippedSpells.push(null);addSpellSlotHTML();}}},
   {id:'boss_first',   icon:'💥',name:'Chasseur de Boss', desc:'Tuer le premier boss',          cat:'waves',  target:1,   stat:'bossKills',     reward:'+10% or des drops', bonusFn:(G)=>{G.goldBonus=(G.goldBonus||1)+.10;}},
-  {id:'boss_10',      icon:'🏆',name:'Dompteur de Titans',desc:'10 boss tués',                 cat:'waves',  target:10,  stat:'bossKills',     reward:'+1 Slot de sort',   bonusFn:(G)=>{/* handled separately */}},
+  {id:'boss_10',      icon:'🏆',name:'Dompteur de Titans',desc:'10 boss tués',                 cat:'waves',  target:10,  stat:'bossKills',     reward:'+1 Slot de sort',   bonusFn:(G)=>{if((G.spellSlotsMax||4)<6){G.spellSlotsMax=(G.spellSlotsMax||4)+1;G.equippedSpells.push(null);addSpellSlotHTML();}}},
   // OR
   {id:'gold_1000',    icon:'💰',name:'Commerçant',       desc:'Accumuler 1000 gold (total)',   cat:'economy',target:1000,stat:'totalGoldEarned',reward:'+5% vitesse MP regen',bonusFn:(G)=>{G.mpRegen=(G.mpRegen||2)+.5;}},
   {id:'gold_10000',   icon:'💎',name:'Trésorier',        desc:'Accumuler 10000 gold (total)',  cat:'economy',target:10000,stat:'totalGoldEarned',reward:'+25 HP MAX',       bonusFn:(G)=>{G.baseStats.maxHp+=25;}},
@@ -1417,7 +1447,7 @@ function spawnBoss(wave){
   const sc=1+wave*.08;
   const boss={
     id:'boss_'+Date.now(),type:'boss',isBoss:true,
-    col:8,row:0,
+    col:state.golem.col+rnd(-2,2),row:state.golem.row-16,
     hp:Math.floor(def.hp*sc),maxHp:Math.floor(def.hp*sc),
     dmg:Math.floor(def.dmg*sc),spd:def.spd,range:1.8,
     xp:Math.floor(def.xp*sc),gold:Math.floor(def.gold*sc),threat:5,
@@ -1507,8 +1537,13 @@ function spawnWave(wave){
   const pool=pools[Math.min(wave-1,pools.length-1)];
   for(let i=0;i<count;i++){
     const type=pool[Math.floor(Math.random()*pool.length)];const t=ETYPES[type];
-    let col,row;const e=Math.floor(Math.random()*4);
-    if(e===0){col=0;row=rnd(0,ISO.rows);}else if(e===1){col=ISO.cols-1;row=rnd(0,ISO.rows);}else if(e===2){col=rnd(0,ISO.cols);row=0;}else{col=rnd(0,ISO.cols);row=ISO.rows-1;}
+    // Spawn à distance du Golem, hors du champ de vision
+    let col,row;
+    const spawnRadius=14+Math.floor(wave/5);  // s'agrandit avec les vagues
+    const angle=Math.random()*Math.PI*2;
+    const dist2=spawnRadius+rnd(-2,2);
+    col=state.golem.col+Math.cos(angle)*dist2;
+    row=state.golem.row+Math.sin(angle)*dist2*0.5;
     const sc=1+wave*.1;
     state.enemies.push({id:Date.now()+i,type,col,row,hp:Math.floor(t.hp*sc),maxHp:Math.floor(t.hp*sc),dmg:Math.floor(t.dmg*sc),spd:t.spd,range:t.range,xp:t.xp,gold:t.gold,threat:t.threat,name:t.name,atkTimer:rnd(0,2),hitFlash:0,animTimer:0,animFrame:0,draw:t.draw,facing:1,slow:0});
   }
@@ -1532,7 +1567,8 @@ function updateGolem(dt){
   else if(closest&&dist(G,closest)<=G.atkRange){G.gstate='attack';G.target=closest;attackBehavior(G,closest,dt);}
   else if(closest){if(threat<=4){G.gstate='chase';chaseTo(G,closest,dt);}else{G.gstate='flee';G.fleeTimer=2;fleeFrom(G,closest,dt);}}
   G.atkTimer=Math.max(0,G.atkTimer-dt);
-  G.col=Math.max(.3,Math.min(ISO.cols-.3,G.col));G.row=Math.max(.3,Math.min(ISO.rows-.3,G.row));
+  // Monde infini — pas de mur, légère attraction vers le centre
+  G.col=Math.max(-50,Math.min(50,G.col));G.row=Math.max(-50,Math.min(50,G.row));
   updateSpells(dt);
   const badge=document.getElementById('state-badge');
   const sc2={patrol:'#4a7aff',chase:'#ffd700',flee:'#ef4444',attack:'#ff6b35'};
@@ -1541,11 +1577,11 @@ function updateGolem(dt){
 }
 function chaseTo(G,t,dt){const d=dist(G,t);if(d<.1)return;const s=(0.8+G.spd*.08)*dt,f=Math.min(s/d,1);const dc=(t.col-G.col)*f,dr=(t.row-G.row)*f;G.col+=dc;G.row+=dr;if(dc!==0)G.facing=dc>0?1:-1;}
 function fleeFrom(G,t,dt){const d=dist(G,t);if(d<.1)return;const s=(1+G.spd*.1)*dt,f=s/d;G.col-=(t.col-G.col)*f;G.row-=(t.row-G.row)*f;G.col+=(8-G.col)*.02;G.row+=(8-G.row)*.02;}
-function patrolBehavior(G,dt){G.patrolTimer-=dt;if(G.patrolTimer<=0){G.patrol.col=2+rnd(0,ISO.cols-4);G.patrol.row=2+rnd(0,ISO.rows-4);G.patrolTimer=3+rnd(0,4);}const d=dist(G,G.patrol);if(d>.3){const s=.4*dt,f=Math.min(s/d,1);const dc=(G.patrol.col-G.col)*f,dr=(G.patrol.row-G.row)*f;G.col+=dc;G.row+=dr;if(dc!==0)G.facing=dc>0?1:-1;}}
+function patrolBehavior(G,dt){G.patrolTimer-=dt;if(G.patrolTimer<=0){G.patrol.col=G.col+rnd(-4,4);G.patrol.row=G.row+rnd(-4,4);G.patrolTimer=3+rnd(0,4);}const d=dist(G,G.patrol);if(d>.3){const s=.4*dt,f=Math.min(s/d,1);const dc=(G.patrol.col-G.col)*f,dr=(G.patrol.row-G.row)*f;G.col+=dc;G.row+=dr;if(dc!==0)G.facing=dc>0?1:-1;}}
 function attackBehavior(G,enemy,dt){
   if(G.atkTimer<=0){
     G.facing=enemy.col>G.col?1:-1;
-    const physBase=G.atkDmg+Math.floor(G.str*.8)+Math.floor(G.int*.15);let dmg=physBase;const crit=Math.random()*100<G.critChance;const critMult=1.85+Math.max(0,(G.critChance-5))*0.005;if(crit)dmg=Math.floor(dmg*critMult);
+    const physBase=G.atkDmg+Math.floor(G.str*.8)+Math.floor(G.int*.15);let dmg=physBase;const crit=Math.random()*100<G.critChance;const critMult=(1.85+Math.max(0,(G.critChance-5))*0.005)*(1+(G.critDmgBonus||0));if(crit)dmg=Math.floor(dmg*critMult);
     enemy.hp-=dmg;enemy.hitFlash=1;
     const ep=ISO.toScreen(enemy.col,enemy.row);
     fxSlash(ep.x,ep.y,crit);
@@ -1562,7 +1598,7 @@ function killEnemy(enemy){
   if(enemy.isBoss){
     state.bossKills=(state.bossKills||0)+1;
     document.getElementById('boss-bar').style.display='none';
-    addLog(`💥 BOSS ${enemy.name} vaincu! +${Math.floor(enemy.gold*(state.golem.goldBonus||1))} G`,'log-loot');
+    addLog(`💥 BOSS ${enemy.name} vaincu!`,'log-loot');
     checkAchievements();
     // Guaranteed epic+ drop
     const bossRar=Math.random()<.3?'legendary':'epic';
@@ -1609,6 +1645,7 @@ function updateEnemies(dt){
     }
     if(e.isBoss){updateBossBar(e);}
     const sM=e.slow>0?(1-e.slow):1;const d=dist(e,G);
+    // Pas de clamp pour les ennemis — monde infini
     if(d>e.range){const s=e.spd*sM*dt,f=Math.min(s/d,1);const dc=(G.col-e.col)*f,dr=(G.row-e.row)*f;e.col+=dc;e.row+=dr;e.facing=dc>0?1:-1;}
     else{e.facing=G.col>e.col?1:-1;if(e.atkTimer<=0){const physRed=Math.floor(G.def*.6);let dmg=Math.max(1,e.dmg-physRed);dmg=Math.floor(dmg*(1-(G.dmgReduction||0)));G.hp-=dmg;G.hitFlash=1;e.atkTimer=1.2/e.spd;const p=ISO.toScreen(G.col,G.row);spawnFloat(p.x,p.y-15,`-${dmg}`,'#ef4444');spawnPart(p.x,p.y,4,'#ef4444',2);if(G.hp<=0){G.hp=0;handleDeath();}}}
   }
@@ -1668,7 +1705,32 @@ function drawBrute(cx,x,y,e){const b=Math.sin(e.animFrame*Math.PI*.5)*.8;cx.save
 function drawSlime(cx,x,y,e){const sq=.85+Math.sin(e.animFrame*Math.PI*.5)*.15;cx.save();cx.translate(x,y);if(e.hitFlash>0){cx.globalAlpha=.5+e.hitFlash*.5;cx.globalCompositeOperation='lighter';}cx.scale(1,sq);cx.fillStyle=C.slime.body;cx.beginPath();cx.ellipse(0,-6,10,8,0,0,Math.PI*2);cx.fill();cx.fillStyle='rgba(255,255,255,.15)';cx.beginPath();cx.ellipse(-2,-9,4,2.5,-.3,0,Math.PI*2);cx.fill();cx.fillStyle=C.slime.eye;cx.fillRect(-4,-8,2.5,2.5);cx.fillRect(1,-8,2.5,2.5);cx.restore();drawHpBar(x,y-20,e.hp,e.maxHp,24);}
 function drawArcher(cx,x,y,e){const b=Math.sin(e.animFrame*Math.PI*.5)*1;cx.save();cx.translate(x,y+b);if(e.hitFlash>0){cx.globalAlpha=.5+e.hitFlash*.5;cx.globalCompositeOperation='lighter';}drawShadow(0,4,12);cx.fillStyle=C.archer.body;cx.fillRect(-5,-19,10,18);cx.fillStyle='#c0611a';cx.fillRect(-3,-17,4,6);cx.fillStyle=C.archer.eye;cx.globalAlpha=.9;cx.fillRect(-3,-14,2,2);cx.fillRect(1,-14,2,2);cx.globalAlpha=1;cx.strokeStyle='#8B4513';cx.lineWidth=1.5;cx.beginPath();cx.arc(8,-12,7,-1.2,1.2);cx.stroke();cx.strokeStyle='#ddd';cx.lineWidth=.8;cx.beginPath();cx.moveTo(8,-19);cx.lineTo(8,-5);cx.stroke();cx.fillStyle='#c0611a';cx.fillRect(-4,0+(e.animFrame%2?1:0),3,5);cx.fillRect(1,0+(e.animFrame%2?0:1),3,5);cx.restore();drawHpBar(x,y-28,e.hp,e.maxHp,28);}
 function drawWraith(cx,x,y,e){const fl2=Math.sin(Date.now()*.002+e.id*.01)*3;cx.save();cx.translate(x,y+fl2);if(e.hitFlash>0){cx.globalAlpha=.5+e.hitFlash*.5;cx.globalCompositeOperation='lighter';}cx.globalAlpha=(cx.globalAlpha||1)*.75;cx.fillStyle=C.wraith.body;cx.beginPath();cx.ellipse(0,-8,9,14,0,0,Math.PI*2);cx.fill();cx.fillStyle='rgba(100,50,150,.4)';cx.beginPath();cx.ellipse(0,-8,7,12,0,0,Math.PI*2);cx.fill();cx.fillStyle=C.wraith.eye;cx.globalAlpha=.8+Math.sin(Date.now()*.007)*.2;cx.beginPath();cx.arc(-3,-10,2,0,Math.PI*2);cx.fill();cx.beginPath();cx.arc(3,-10,2,0,Math.PI*2);cx.fill();cx.globalAlpha=1;cx.restore();drawHpBar(x,y-28,e.hp,e.maxHp,28);}
-function drawGrid(){for(let c=0;c<ISO.cols;c++){for(let r=0;r<ISO.rows;r++){const{x,y}=ISO.toScreen(c,r);const tw=ISO.tileW/2,th=ISO.tileH/2;ctx.beginPath();ctx.moveTo(x,y-th);ctx.lineTo(x+tw,y);ctx.lineTo(x,y+th);ctx.lineTo(x-tw,y);ctx.closePath();ctx.fillStyle=(c+r)%2===0?C.tile.a:C.tile.b;ctx.fill();ctx.strokeStyle=C.tile.line;ctx.lineWidth=.5;ctx.stroke();}}}
+function drawGrid(){
+  const G=state.golem;
+  const cam=Math.round(G.col),camR=Math.round(G.row);
+  const {hw,hh}=ISO.tilesVisible();
+  const tw=ISO.tileW/2,th=ISO.tileH/2;
+  // Draw a larger range of tiles centered on camera
+  for(let dc=-hw;dc<=hw;dc++){
+    for(let dr=-hh;dr<=hh;dr++){
+      const col=cam+dc,row=camR+dr;
+      const {x,y}=ISO.toScreen(col,row);
+      // Cull tiles completely off-screen
+      if(x<-tw*2||x>canvas.width+tw*2||y<-th*2||y>canvas.height+th*2)continue;
+      ctx.beginPath();
+      ctx.moveTo(x,y-th);ctx.lineTo(x+tw,y);
+      ctx.lineTo(x,y+th);ctx.lineTo(x-tw,y);
+      ctx.closePath();
+      // Motif de sol varié : utilise modulo pour pattern infini
+      const mc=((col%4)+4)%4, mr=((row%4)+4)%4;
+      if(mc===1&&mr===1)      ctx.fillStyle=C.tile.c;  // accentué
+      else if((col+row)%2===0)ctx.fillStyle=C.tile.a;
+      else                    ctx.fillStyle=C.tile.b;
+      ctx.fill();
+      ctx.strokeStyle=C.tile.line;ctx.lineWidth=.5;ctx.stroke();
+    }
+  }
+}
 function drawParticles(){for(const p of state.particles){ctx.globalAlpha=p.life/p.maxLife;ctx.fillStyle=p.color;ctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size);}ctx.globalAlpha=1;}
 function drawScene(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -1689,7 +1751,8 @@ function updateUI(){
   document.getElementById('bar-mp').style.width=(G.mp/G.maxMp*100)+'%';document.getElementById('val-mp').textContent=Math.ceil(G.mp)+'/'+G.maxMp;
   document.getElementById('bar-xp').style.width=(G.xp/G.xpNext*100)+'%';document.getElementById('val-xp').textContent='LVL '+G.level;
   document.getElementById('gold-val').textContent=G.gold+' G';
-  document.getElementById('wave-num').textContent=state.wave;document.getElementById('enemy-count').textContent=state.enemies.length;
+  document.getElementById('wave-num').textContent=state.wave;
+  const ssc=document.getElementById('spell-slot-count');if(ssc)ssc.textContent=state.golem.spellSlotsMax||4;document.getElementById('enemy-count').textContent=state.enemies.length;
   document.getElementById('score-val').textContent=state.score.toLocaleString();
   document.getElementById('s-str').textContent=G.str;document.getElementById('s-int').textContent=G.int;
   document.getElementById('s-spd').textContent=G.spd.toFixed(1);document.getElementById('s-def').textContent=G.def;
@@ -1706,10 +1769,27 @@ function renderSpellPips(){
   });
   container.innerHTML=pips.join('');
 }
+
+// ── Ajouter dynamiquement un slot de sort (récompense défi) ──────────
+function addSpellSlotHTML(){
+  const row=document.getElementById('spell-slots-row');
+  const G=state.golem;
+  const idx=G.equippedSpells.length-1;
+  const el=document.createElement('div');
+  el.className='spell-slot';
+  el.dataset.spellSlot=idx;
+  el.innerHTML=`<span class="spell-slot-ico">＋</span><div class="spell-slot-lbl">SORT ${idx+1}</div><span class="ss-x">✕</span>`;
+  row.appendChild(el);
+  addLog(`✨ Nouveau slot de sort débloqué! (${idx+1} slots)`,'log-spell');
+  renderSpellSlots();renderSpells();
+}
+
 function renderSpellSlots(){
   const G=state.golem;
   document.querySelectorAll('.spell-slot').forEach(el=>{
-    const idx=+el.dataset.spellSlot;const id=G.equippedSpells[idx];const def=id?getSpellDef(id):null;
+    const idx=+el.dataset.spellSlot;
+    el.style.display=idx<(G.spellSlotsMax||4)?'flex':'none';
+    const id=G.equippedSpells[idx];const def=id?getSpellDef(id):null;
     const x=el.querySelector('.ss-x');
     if(def){el.classList.add('filled');el.querySelector('.spell-slot-ico').textContent=def.icon;el.querySelector('.spell-slot-lbl').textContent=def.name.substring(0,6);if(x)x.style.display='block';}
     else{el.classList.remove('filled');el.querySelector('.spell-slot-ico').textContent='＋';el.querySelector('.spell-slot-lbl').textContent='SORT '+(idx+1);if(x)x.style.display='none';}
@@ -1834,11 +1914,11 @@ function openSpellModal(spellId){
     </div>`:'<div style="font-size:9px;color:var(--muted);margin-top:4px;">Utilise ce sort pour gagner de la maîtrise.</div>'}
   </div>`;
   if(equipped){const slot=state.golem.equippedSpells.indexOf(spellId);html+=`<div style="color:var(--hp);text-align:center;font-size:11px;margin:6px 0">✓ Équipé — Slot ${slot+1}</div>`;html+=`<button class="modal-btn danger" onclick="unequipSpellFromModal('${spellId}')">↩️ Retirer</button>`;}
-  else{const empty=state.golem.equippedSpells.indexOf(null);if(empty!==-1)html+=`<button class="modal-btn primary" onclick="equipSpellFromModal('${spellId}')">✨ Équiper slot ${empty+1}</button>`;else html+=`<div style="color:var(--danger);text-align:center;font-size:11px;margin:6px 0">Slots pleins</div>`;}
+  else{const _slots=state.golem.equippedSpells.slice(0,state.golem.spellSlotsMax||4);const empty=_slots.indexOf(null);if(empty!==-1)html+=`<button class="modal-btn primary" onclick="equipSpellFromModal('${spellId}')">✨ Équiper slot ${empty+1}</button>`;else html+=`<div style="color:var(--danger);text-align:center;font-size:11px;margin:6px 0">Slots pleins (${state.golem.spellSlotsMax||4}/6)</div>`;}
   html+=`<button class="modal-btn muted-btn" onclick="closeModal()">Fermer</button>`;
   openModal(def.icon+' '+def.name,html);
 }
-function equipSpellFromModal(id){const slot=state.golem.equippedSpells.indexOf(null);if(slot===-1){closeModal();return;}equipSpell(id,slot);closeModal();}
+function equipSpellFromModal(id){const G=state.golem;const slots=G.equippedSpells.slice(0,G.spellSlotsMax||4);const slot=slots.indexOf(null);if(slot===-1){closeModal();return;}equipSpell(id,slot);closeModal();}
 function unequipSpellFromModal(id){const slot=state.golem.equippedSpells.indexOf(id);if(slot!==-1)unequipSpell(slot);closeModal();}
 
 let toastTimer2=null;
@@ -1895,7 +1975,7 @@ function gameLoop(ts){
 window.addEventListener('beforeunload',()=>{
   localStorage.setItem('golemExe6',JSON.stringify({
     baseStats:state.golem.baseStats,
-    golem:{hp:state.golem.hp,mp:state.golem.mp,xp:state.golem.xp,xpNext:state.golem.xpNext,level:state.golem.level,gold:state.golem.gold,atkSpd:state.golem.atkSpd,cdReduction:state.golem.cdReduction,mpRegen:state.golem.mpRegen,hpRegen:state.golem.hpRegen},
+    golem:{hp:state.golem.hp,mp:state.golem.mp,xp:state.golem.xp,xpNext:state.golem.xpNext,level:state.golem.level,gold:state.golem.gold,atkSpd:state.golem.atkSpd,cdReduction:state.golem.cdReduction,mpRegen:state.golem.mpRegen,hpRegen:state.golem.hpRegen,spellSlotsMax:state.golem.spellSlotsMax},
     equipped:state.golem.equipped,equippedSpells:state.golem.equippedSpells,
     upgrades:state.golem.upgrades,
     wave:state.wave,score:state.score,inventory:state.inventory,
@@ -1935,6 +2015,19 @@ function init(){
     if(s.maxWave)state.maxWave=s.maxWave;
     if(s.totalGoldEarned)state.totalGoldEarned=s.totalGoldEarned;
     if(s.achievements)for(const id of s.achievements)state_ach.unlocked.add(id);
+    // Restore extra spell slots
+    const extraSlots=(state.golem.spellSlotsMax||4)-4;
+    for(let i=0;i<extraSlots;i++){
+      if(state.golem.equippedSpells.length<(state.golem.spellSlotsMax||4))state.golem.equippedSpells.push(null);
+      // Add DOM slot
+      const row=document.getElementById('spell-slots-row');
+      const idx=4+i;
+      if(!document.querySelector(`.spell-slot[data-spell-slot="${idx}"]`)){
+        const el=document.createElement('div');el.className='spell-slot';el.dataset.spellSlot=idx;
+        el.innerHTML=`<span class="spell-slot-ico">＋</span><div class="spell-slot-lbl">SORT ${idx+1}</div><span class="ss-x">✕</span>`;
+        row.appendChild(el);
+      }
+    }
     recalcStats();addLog('💾 Partie chargée!','log-spell');
   }catch(e){console.warn(e);}}
   renderInventory();renderEquip();renderSpellSlots();renderSpells();renderUpgrades();renderAchievements();updateUI();
