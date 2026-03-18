@@ -195,6 +195,7 @@
     .inv-item.epic::after     {--rc:var(--c-epic);}
     .inv-item.legendary::after{--rc:var(--c-legendary);}
     .rarity-dot{display:none;}
+    .affix-dot{position:absolute;bottom:2px;left:2px;width:5px;height:5px;border-radius:50%;background:var(--gold);box-shadow:0 0 4px var(--gold);}
     /* Sell bar */
     #sell-bar{display:flex;gap:4px;margin-top:0;}
     .sell-rarity-btn{flex:1;padding:7px 3px;background:rgba(255,255,255,.03);border:1px solid var(--border2);color:var(--text2);font-family:'Share Tech Mono',monospace;font-size:9px;border-radius:5px;cursor:pointer;transition:all .18s;white-space:nowrap;letter-spacing:.3px;}
@@ -383,6 +384,11 @@
     .spell-tier-btn:active{background:rgba(255,193,7,.2);}
     .spell-tier-btn.cant-afford{border-color:var(--muted);color:var(--muted);cursor:not-allowed;}
 
+
+    /* ── ÉLITES ── */
+    .elite-crown{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:11px;pointer-events:none;animation:crownBob .8s ease infinite alternate;}
+    @keyframes crownBob{from{transform:translateX(-50%) translateY(0)}to{transform:translateX(-50%) translateY(-3px)}}
+
     @keyframes waveFlash{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}70%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.1)}}
   </style>
 </head>
@@ -556,10 +562,18 @@ const BIOMES={
     monsters:['lavabrute','ember','ashwraith','scorcher'],
     startWave:8,
   },
+  abyssal:{
+    name:'Abysses Glaciales',icon:'❄️',
+    tile:{a:'#00060f',b:'#000b18',c:'#010d1f',line:'#0a1a2e'},
+    fogColor:'rgba(0,20,60,.2)',
+    monsters:['frostshade','voidarcher','abyssalbehemoth','glacialgolem'],
+    startWave:18,
+  },
 };
 // Current biome determined by wave range
 function getBiome(wave){
-  if(wave>=8)return BIOMES.volcanic;
+  if(wave>=18)return BIOMES.abyssal;
+  if(wave>=8) return BIOMES.volcanic;
   return BIOMES.forest;
 }
 
@@ -1102,6 +1116,11 @@ const ETYPES={
   archer:{hp:25,dmg:8, spd:.7, range:3.5,xp:20,gold:4,threat:2,name:'Archer',draw:drawArcher},
   brute: {hp:80,dmg:14,spd:.55,range:1.5,xp:40,gold:8,threat:3,name:'Brute', draw:drawBrute},
   wraith:   {hp:45,dmg:10,spd:1.3,range:1.2,xp:35,gold:7, threat:2,name:'Spectre',  draw:drawWraith},
+  // ── Biome Abyssal ──
+  frostshade:      {hp:55, dmg:12,spd:1.4,range:1.2,xp:50,gold:11,threat:2,name:'Spectre Givré', draw:drawFrostShade,    dotOnHit:{type:'bleed',dmg:4,dur:3},  slowOnHitVal:.3},
+  abyssalbehemoth: {hp:200,dmg:30,spd:.45,range:1.6,xp:100,gold:25,threat:5,name:'Béhémoth Abyssal',draw:drawAbyssalBehemoth,dotOnHit:{type:'bleed',dmg:8,dur:5}},
+  voidarcher:      {hp:40, dmg:20,spd:.7, range:4.5,xp:60,gold:14,threat:3,name:'Archer du Vide',  draw:drawVoidArcher,    dotOnHit:{type:'bleed',dmg:6,dur:4}},
+  glacialgolem:    {hp:150,dmg:22,spd:.5, range:1.5,xp:80,gold:20,threat:4,name:'Golem Glacial',   draw:drawGlacialGolem,  slowOnHitVal:.4},
   // ── Biome Volcanique ──
   lavabrute:{hp:120,dmg:22,spd:.5, range:1.6,xp:65,gold:15,threat:4,name:'Brute de Lave',draw:drawLavaBrute, dotOnHit:{type:'burn',dmg:4,dur:3}},
   ember:    {hp:25, dmg:12,spd:1.5,range:1.0,xp:30,gold:8, threat:2,name:'Tison',        draw:drawEmber,     dotOnHit:{type:'burn',dmg:3,dur:2}},
@@ -1685,6 +1704,124 @@ function updateDots(target,dt,isGolem=false){
   }
 }
 
+
+// ══ ELITE SYSTEM ══════════════════════════════════════════════════════
+const ELITE_AFFIXES=[
+  {id:'berserker', name:'Berserker',  color:'#ff1744', auraColor:'rgba(255,23,68,.25)',
+   apply:(e)=>{e.dmg=Math.floor(e.dmg*1.5);e.spd*=1.25;},
+   desc:'Frénétique: +50% DMG, +25% vitesse'},
+  {id:'armored',   name:'Blindé',     color:'#78909c', auraColor:'rgba(120,144,156,.25)',
+   apply:(e)=>{e.hp=e.maxHp=Math.floor(e.hp*3);e.dmg=Math.floor(e.dmg*.7);},
+   desc:'Armure renforcée: ×3 HP, -30% DMG'},
+  {id:'vampiric',  name:'Vampirique', color:'#ad1457', auraColor:'rgba(173,20,87,.25)',
+   apply:(e)=>{e.lifeSteal=.3;e.dmg=Math.floor(e.dmg*1.2);},
+   desc:'Siphon: 30% lifesteal, +20% DMG'},
+  {id:'spectral',  name:'Spectral',   color:'#7c4dff', auraColor:'rgba(124,77,255,.25)',
+   apply:(e)=>{e.spd*=1.5;e.evasion=.2;},
+   desc:'Fantôme: +50% vitesse, 20% esquive'},
+  {id:'venomous',  name:'Venimeux',   color:'#64dd17', auraColor:'rgba(100,221,23,.25)',
+   apply:(e)=>{e.poisonOnHit={type:'poison',dmg:8,dur:6};},
+   desc:'Poison: applique poison sur chaque coup'},
+  {id:'fiery',     name:'Embrasé',    color:'#ff6d00', auraColor:'rgba(255,109,0,.25)',
+   apply:(e)=>{e.dotOnHit={type:'burn',dmg:10,dur:5};e.dmg=Math.floor(e.dmg*1.3);},
+   desc:'Brasier: +30% DMG, brûlure sur coup'},
+  {id:'frozen',    name:'Glacial',    color:'#00b0ff', auraColor:'rgba(0,176,255,.25)',
+   apply:(e)=>{e.slowOnHit=.5;e.hp=e.maxHp=Math.floor(e.hp*1.5);},
+   desc:'Glacé: ralentit le Golem -50%, +50% HP'},
+  {id:'warlord',   name:'Seigneur',   color:'#ffd600', auraColor:'rgba(255,214,0,.25)',
+   apply:(e)=>{e.hp=e.maxHp=Math.floor(e.hp*2);e.dmg=Math.floor(e.dmg*1.4);e.xp=Math.floor(e.xp*2);e.gold=Math.floor(e.gold*2);},
+   desc:'Commandant: ×2 HP, ×2 XP/Gold, +40% DMG'},
+];
+
+// Elite spawn chance per wave (caps at 35%)
+function eliteChance(wave){return Math.min(.35, .05 + wave*.015);}
+
+// Convert a normal enemy into an elite
+function makeElite(enemy){
+  const affix=ELITE_AFFIXES[Math.floor(Math.random()*ELITE_AFFIXES.length)];
+  enemy.isElite=true;
+  enemy.eliteAffix=affix;
+  enemy.eliteColor=affix.color;
+  enemy.eliteAura=affix.auraColor;
+  // Base elite stat boost (on top of affix)
+  enemy.hp=enemy.maxHp=Math.floor(enemy.hp*2.5);
+  enemy.xp=Math.floor(enemy.xp*2);
+  enemy.gold=Math.floor(enemy.gold*2.5);
+  // Apply specific affix
+  affix.apply(enemy);
+  enemy.name=`[${affix.name}] ${enemy.name}`;
+  return enemy;
+}
+
+// Draw elite aura (called in drawGrid pass, before sprites)
+function drawEliteAura(e){
+  if(!e.isElite)return;
+  const p=ISO.toScreen(e.col,e.row);
+  const t=vfxTime;
+  // Pulsing ground aura
+  ctx.save();
+  ctx.globalAlpha=.35+Math.sin(t*3)*.15;
+  ctx.fillStyle=e.eliteAura||'rgba(255,0,0,.2)';
+  ctx.beginPath();ctx.ellipse(p.x,p.y,32,14,0,0,Math.PI*2);ctx.fill();
+  // Spinning ring
+  ctx.globalAlpha=.6+Math.sin(t*4)*.2;
+  ctx.strokeStyle=e.eliteColor||'#ff1744';
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  for(let i=0;i<8;i++){
+    const a=i/8*Math.PI*2+t*1.5;
+    const rx=28,ry=12;
+    const x2=p.x+Math.cos(a)*rx;const y2=p.y+Math.sin(a)*ry;
+    i===0?ctx.moveTo(x2,y2):ctx.lineTo(x2,y2);
+  }
+  ctx.closePath();ctx.stroke();
+  ctx.restore();
+}
+
+
+// ══ ITEM AFFIX SYSTEM ═════════════════════════════════════════════════
+// Affixes = stats procédurales générées à la création de l'item
+// Chaque affix a un nom, une stat modifiée et un range min/max par rareté
+const AFFIX_POOL=[
+  {name:'de Puissance',  stat:'str',  ranges:{common:[1,3],uncommon:[2,5],rare:[4,9],epic:[8,15],legendary:[12,22]}},
+  {name:"d'Intellect",   stat:'int',  ranges:{common:[1,3],uncommon:[2,5],rare:[4,9],epic:[8,15],legendary:[12,22]}},
+  {name:'de Précision',  stat:'crit', ranges:{common:[1,2],uncommon:[2,4],rare:[3,7],epic:[6,12],legendary:[10,18]}},
+  {name:'de Vigueur',    stat:'hp',   ranges:{common:[5,12],uncommon:[10,25],rare:[20,45],epic:[40,80],legendary:[70,130]}},
+  {name:'de Mana',       stat:'mp',   ranges:{common:[3,8],uncommon:[6,16],rare:[12,30],epic:[25,50],legendary:[40,80]}},
+  {name:'de Défense',    stat:'def',  ranges:{common:[1,2],uncommon:[2,4],rare:[3,7],epic:[6,12],legendary:[10,18]}},
+  {name:'de Vitesse',    stat:'spd',  ranges:{common:[0.5,1],uncommon:[1,2],rare:[1.5,3],epic:[2.5,5],legendary:[4,8]}},
+  {name:'de Brutalité',  stat:'atk',  ranges:{common:[1,3],uncommon:[2,6],rare:[5,11],epic:[9,18],legendary:[15,28]}},
+];
+
+// Nombre d'affixes par rareté
+const AFFIX_COUNT={common:0,uncommon:1,rare:2,epic:3,legendary:4};
+
+function generateAffixes(tmpl){
+  const n=AFFIX_COUNT[tmpl.rarity]||0;
+  if(n===0)return{affixes:[],stats:{...tmpl.stats}};
+  // Pick n random unique affixes
+  const pool=[...AFFIX_POOL].sort(()=>Math.random()-.5).slice(0,n);
+  const newStats={...tmpl.stats};
+  const affixes=[];
+  for(const aff of pool){
+    const range=aff.ranges[tmpl.rarity]||[1,2];
+    let val=Math.round((range[0]+Math.random()*(range[1]-range[0]))*10)/10;
+    if(aff.stat!=='spd')val=Math.round(val);
+    // Only add if meaningful
+    if(val===0)continue;
+    newStats[aff.stat]=(newStats[aff.stat]||0)+val;
+    affixes.push({name:aff.name,stat:aff.stat,val});
+  }
+  // Rename item with first affix suffix
+  const firstName=affixes[0]?.name||'';
+  return{affixes,stats:newStats,name:firstName?`${tmpl.name} ${firstName}`:tmpl.name};
+}
+
+function formatAffixStats(item){
+  if(!item.affixes||item.affixes.length===0)return'';
+  return item.affixes.map(a=>`<span class="mic-stat pos">${STAT_LABELS[a.stat]||a.stat}: +${a.val} <span style="font-size:9px;opacity:.6">(affix)</span></span>`).join('');
+}
+
 // ══ HELPERS ═══════════════════════════════════════════════════════════
 function dist(a,b){return Math.sqrt((a.col-b.col)**2+(a.row-b.row)**2);}
 function rnd(a,b){return a+Math.random()*(b-a);}
@@ -1704,10 +1841,15 @@ function spawnWave(wave){
     return;
   }
   document.getElementById('boss-bar').style.display='none';
-  const count=3+wave*2;
+  // Density: more enemies in higher biomes
+  const baseDensity=bio===BIOMES.abyssal?6:bio===BIOMES.volcanic?5:3;
+  const count=Math.min(40, baseDensity+wave*2);
   const bio=getBiome(wave);
   let pool;
-  if(bio===BIOMES.volcanic){
+  if(bio===BIOMES.abyssal){
+    const apools=[['frostshade','voidarcher'],['frostshade','glacialgolem'],['voidarcher','abyssalbehemoth','glacialgolem'],['abyssalbehemoth','glacialgolem'],['abyssalbehemoth','voidarcher','glacialgolem']];
+    pool=apools[Math.min(wave-18,apools.length-1)];
+  } else if(bio===BIOMES.volcanic){
     const vpools=[['ember','lavabrute'],['ember','scorcher','lavabrute'],['scorcher','ashwraith','lavabrute'],['ashwraith','scorcher'],['lavabrute','ashwraith']];
     pool=vpools[Math.min(wave-8,vpools.length-1)];
   } else {
@@ -1724,7 +1866,9 @@ function spawnWave(wave){
     col=state.golem.col+Math.cos(angle)*dist2;
     row=state.golem.row+Math.sin(angle)*dist2*0.5;
     const sc=1+wave*.1;
-    state.enemies.push({id:Date.now()+i,type,col,row,hp:Math.floor(t.hp*sc),maxHp:Math.floor(t.hp*sc),dmg:Math.floor(t.dmg*sc),spd:t.spd,range:t.range,xp:t.xp,gold:t.gold,threat:t.threat,name:t.name,atkTimer:rnd(0,2),hitFlash:0,animTimer:0,animFrame:0,draw:t.draw,facing:1,slow:0});
+    const enemy={id:Date.now()+i,type,col,row,hp:Math.floor(t.hp*sc),maxHp:Math.floor(t.hp*sc),dmg:Math.floor(t.dmg*sc),spd:t.spd,range:t.range,xp:t.xp,gold:t.gold,threat:t.threat,name:t.name,atkTimer:rnd(0,2),hitFlash:0,animTimer:0,animFrame:0,draw:t.draw,facing:1,slow:0,slowOnHit:t.slowOnHitVal||0,dotOnHit:t.dotOnHit||null};
+    if(Math.random()<eliteChance(wave))makeElite(enemy);
+    state.enemies.push(enemy);
   }
   state.waveActive=true;
   const prevBio=wave>1?getBiome(wave-1):null;const curBio=getBiome(wave);
@@ -1758,7 +1902,7 @@ function updateGolem(dt){
   const labels={patrol:'PATROL',chase:'CHASSE',flee:'FUITE',attack:'ATTAQUE'};
   badge.textContent=labels[G.gstate];badge.style.color=sc2[G.gstate];badge.style.borderColor=sc2[G.gstate];badge.style.background=sc2[G.gstate]+'18';
 }
-function chaseTo(G,t,dt){const d=dist(G,t);if(d<.1)return;const s=(0.8+G.spd*.08)*dt,f=Math.min(s/d,1);const dc=(t.col-G.col)*f,dr=(t.row-G.row)*f;G.col+=dc;G.row+=dr;if(dc!==0)G.facing=dc>0?1:-1;}
+function chaseTo(G,t,dt){const d=dist(G,t);if(d<.1)return;const slowPenalty=1-(G.slow||0);const s=(0.8+G.spd*.08)*dt*slowPenalty,f=Math.min(s/d,1);const dc=(t.col-G.col)*f,dr=(t.row-G.row)*f;G.col+=dc;G.row+=dr;if(dc!==0)G.facing=dc>0?1:-1;}
 function fleeFrom(G,t,dt){const d=dist(G,t);if(d<.1)return;const s=(1+G.spd*.1)*dt,f=s/d;G.col-=(t.col-G.col)*f;G.row-=(t.row-G.row)*f;G.col+=(8-G.col)*.02;G.row+=(8-G.row)*.02;}
 function patrolBehavior(G,dt){G.patrolTimer-=dt;if(G.patrolTimer<=0){G.patrol.col=G.col+rnd(-4,4);G.patrol.row=G.row+rnd(-4,4);G.patrolTimer=3+rnd(0,4);}const d=dist(G,G.patrol);if(d>.3){const s=.4*dt,f=Math.min(s/d,1);const dc=(G.patrol.col-G.col)*f,dr=(G.patrol.row-G.row)*f;G.col+=dc;G.row+=dr;if(dc!==0)G.facing=dc>0?1:-1;}}
 function attackBehavior(G,enemy,dt){
@@ -1791,8 +1935,9 @@ function killEnemy(enemy){
     if(pool.length&&state.inventory.length<24){
       const tmpl=pool[Math.floor(Math.random()*pool.length)];
       const ep2=ISO.toScreen(enemy.col,enemy.row);
-      state.inventory.push({...tmpl,uid:Date.now()+Math.random()});
-      addLog(`💎 DROP BOSS: ${tmpl.name} (${bossRar})!`,'log-loot');
+      const bItem={...tmpl,...generateAffixes(tmpl),uid:Date.now()+Math.random()};
+      state.inventory.push(bItem);
+      addLog(`💎 DROP BOSS: ${bItem.name} (${bossRar})!`,'log-loot');
       spawnFloat(ep2.x,ep2.y-30,tmpl.icon+'✨','#ffc107');
     }
   }
@@ -1805,6 +1950,19 @@ function killEnemy(enemy){
   state.golem.xp+=enemy.xp;state.golem.gold+=goldDrop;state.totalGoldEarned=(state.totalGoldEarned||0)+goldDrop;
   state.score+=enemy.xp*2;state.totalKills++;
   addLog(`💀 ${enemy.name} +${enemy.xp}XP +${enemy.gold}G`,'log-loot');
+  if(enemy.isElite){
+    // Elite guaranteed rare+ drop
+    const elRar=Math.random()<.15?'epic':Math.random()<.4?'rare':'uncommon';
+    const elPool=ITEMS.filter(i=>i.rarity===elRar);
+    if(elPool.length&&state.inventory.length<24){
+      const tmpl=elPool[Math.floor(Math.random()*elPool.length)];
+      state.inventory.push({...tmpl,...generateAffixes(tmpl),uid:Date.now()+Math.random()});
+      addLog(`✨ ÉLITE drop: ${tmpl.name} (${elRar})!`,'log-loot');
+      spawnFloat(p.x,p.y-25,tmpl.icon,enemy.eliteColor||'#ffd700');
+    }
+    // Mark loot
+    if(elRar==='epic'||elRar==='legendary'){state.lootMarkers.push({x:p.x,y:p.y,color:enemy.eliteColor||'#ab47bc',icon:'✨',life:8,maxLife:8});}
+  }
   if(Math.random()<.033)dropItem(p.x,p.y);
   state.enemies=state.enemies.filter(e=>e!==enemy);
   checkLevelUp();checkAchievements();updateUI();renderUpgrades();
@@ -1834,12 +1992,16 @@ function updateEnemies(dt){
     if(e.isBoss){updateBossBar(e);}
     updateDots(e,dt,false);
     const sM=e.slow>0?(1-e.slow):1;const d=dist(e,G);
+    // Golem slow debuff
     // Pas de clamp pour les ennemis — monde infini
     if(d>e.range){const s=e.spd*sM*dt,f=Math.min(s/d,1);const dc=(G.col-e.col)*f,dr=(G.row-e.row)*f;e.col+=dc;e.row+=dr;e.facing=dc>0?1:-1;}
     else{e.facing=G.col>e.col?1:-1;if(e.atkTimer<=0){// DefShred on enemy reduces their effective def (not used for player, but applied on enemies hitting)
     if(e._defShredTimer>0){e._defShredTimer-=0.016;} // approx dt
     const physRed=Math.floor(G.def*.6);let dmg=Math.max(1,e.dmg-physRed);dmg=Math.floor(dmg*(1-(G.dmgReduction||0)));G.hp-=dmg;G.hitFlash=1;state._tookDmgSinceKill=true;e.atkTimer=1.2/e.spd;
-        if(e.dotOnHit){applyDot(G,e.dotOnHit.type,e.dotOnHit.dmg,e.dotOnHit.dur);}const p=ISO.toScreen(G.col,G.row);spawnFloat(p.x,p.y-15,`-${dmg}`,'#ef4444');spawnPart(p.x,p.y,4,'#ef4444',2);if(G.hp<=0){G.hp=0;handleDeath();}}}
+        if(e.dotOnHit){applyDot(G,e.dotOnHit.type,e.dotOnHit.dmg,e.dotOnHit.dur);}
+        if(e.poisonOnHit){applyDot(G,e.poisonOnHit.type,e.poisonOnHit.dmg,e.poisonOnHit.dur);}
+        const soh=e.slowOnHit||0;if(soh>0){G.slow=(G.slow||0)+soh;setTimeout(()=>{G.slow=Math.max(0,(G.slow||0)-soh);},3000);}
+        if(e.lifeSteal){const h=Math.floor(dmg*e.lifeSteal);e.hp=Math.min(e.maxHp,e.hp+h);}const p=ISO.toScreen(G.col,G.row);spawnFloat(p.x,p.y-15,`-${dmg}`,'#ef4444');spawnPart(p.x,p.y,4,'#ef4444',2);if(G.hp<=0){G.hp=0;handleDeath();}}}
   }
 }
 function handleDeath(){
@@ -1874,7 +2036,8 @@ function dropItem(x,y){
   const pool=ITEMS.filter(i=>i.rarity===rar);if(!pool.length)return;
   const tmpl=pool[Math.floor(Math.random()*pool.length)];
   if(state.inventory.length<24){
-    state.inventory.push({...tmpl,uid:Date.now()+Math.random()});
+    const itemWithAffixes={...tmpl,...generateAffixes(tmpl),uid:Date.now()+Math.random()};
+    state.inventory.push(itemWithAffixes);
     addLog(`📦 ${tmpl.name} (${rar})`,'log-loot');
     spawnFloat(x,y-20,tmpl.icon,'#ffd700');
     if(rar==='epic'||rar==='legendary'){
@@ -1888,7 +2051,15 @@ function updateParticles(dt){for(let i=state.particles.length-1;i>=0;i--){const 
 
 // ══ DRAW ══════════════════════════════════════════════════════════════
 function drawShadow(x,y,r=14){ctx.save();ctx.globalAlpha=.28;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(x,y+3,r,r*.4,0,0,Math.PI*2);ctx.fill();ctx.restore();}
-function drawHpBar(x,y,hp,max,w=28){const h=3,f=Math.max(0,hp/max),col=f>.5?'#22c55e':f>.25?'#f59e0b':'#ef4444';ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(x-w/2,y-h-1,w,h);ctx.fillStyle=col;ctx.fillRect(x-w/2,y-h-1,w*f,h);ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=.5;ctx.strokeRect(x-w/2,y-h-1,w,h);}
+function drawHpBar(x,y,hp,max,w=28,eliteColor=null){
+  const h=3,f=Math.max(0,hp/max);
+  const col=eliteColor?eliteColor:(f>.5?'#22c55e':f>.25?'#f59e0b':'#ef4444');
+  ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(x-w/2,y-h-1,w,h);
+  ctx.fillStyle=col;ctx.fillRect(x-w/2,y-h-1,w*f,h);
+  if(eliteColor){ctx.shadowColor=eliteColor;ctx.shadowBlur=4;}
+  ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=.5;ctx.strokeRect(x-w/2,y-h-1,w,h);
+  ctx.shadowBlur=0;
+}
 function drawGolem(x,y){
   const G=state.golem;const bob=Math.sin(G.animFrame*Math.PI*.5)*1.2;const fl=G.hitFlash>0;
   ctx.save();ctx.translate(x,y+bob);
@@ -1903,11 +2074,11 @@ function drawGolem(x,y){
   const sw=Math.sin(G.animFrame*Math.PI*.5)*1.5;ctx.fillStyle=C.golem.joint;ctx.fillRect(-12,-14+sw,5,11);ctx.fillRect(7,-14-sw,5,11);ctx.fillRect(-6,-1,3,5);ctx.fillRect(3,-1,3,5);ctx.fillStyle='#2a5acc';ctx.fillRect(-7,3+(G.animFrame%2?1:0),5,3);ctx.fillRect(2,3+(G.animFrame%2?0:1),5,3);
   ctx.restore();drawHpBar(x,y-32,G.hp,G.maxHp,36);
 }
-function drawGrunt(cx,x,y,e){const b=Math.sin(e.animFrame*Math.PI*.5)*1.2;cx.save();cx.translate(x,y+b);if(e.hitFlash>0){cx.globalAlpha=.5+e.hitFlash*.5;cx.globalCompositeOperation='lighter';}drawShadow(0,5);cx.fillStyle=C.grunt.body;cx.fillRect(-7,-17,14,17);cx.fillStyle='#8b1a10';cx.fillRect(-5,-15,5,7);cx.fillStyle=C.grunt.eye;cx.globalAlpha=.8+Math.sin(Date.now()*.006)*.2;cx.fillRect(-4,-13,2.5,2.5);cx.fillRect(1,-13,2.5,2.5);cx.globalAlpha=1;cx.fillStyle='#7a1208';cx.fillRect(-6,-1+(e.animFrame%2?0:1),4,4);cx.fillRect(2,-1+(e.animFrame%2?1:0),4,4);cx.restore();drawHpBar(x,y-25,e.hp,e.maxHp,28);}
-function drawBrute(cx,x,y,e){const b=Math.sin(e.animFrame*Math.PI*.5)*.8;cx.save();cx.translate(x,y+b);if(e.hitFlash>0){cx.globalAlpha=.5+e.hitFlash*.5;cx.globalCompositeOperation='lighter';}drawShadow(0,6,20);cx.fillStyle=C.brute.body;cx.fillRect(-11,-22,22,21);cx.fillStyle='#5a2880';cx.fillRect(-9,-20,9,10);cx.fillStyle=C.brute.eye;cx.globalAlpha=.9;cx.fillRect(-7,-16,4,4);cx.fillRect(3,-16,4,4);cx.globalAlpha=1;cx.fillStyle='#4a1a70';cx.fillRect(-13,-16,4,14);cx.fillRect(9,-16,4,14);cx.fillRect(-8,-1+(e.animFrame%2?2:0),5,6);cx.fillRect(3,-1+(e.animFrame%2?0:2),5,6);cx.restore();drawHpBar(x,y-32,e.hp,e.maxHp,36);}
-function drawSlime(cx,x,y,e){const sq=.85+Math.sin(e.animFrame*Math.PI*.5)*.15;cx.save();cx.translate(x,y);if(e.hitFlash>0){cx.globalAlpha=.5+e.hitFlash*.5;cx.globalCompositeOperation='lighter';}cx.scale(1,sq);cx.fillStyle=C.slime.body;cx.beginPath();cx.ellipse(0,-6,10,8,0,0,Math.PI*2);cx.fill();cx.fillStyle='rgba(255,255,255,.15)';cx.beginPath();cx.ellipse(-2,-9,4,2.5,-.3,0,Math.PI*2);cx.fill();cx.fillStyle=C.slime.eye;cx.fillRect(-4,-8,2.5,2.5);cx.fillRect(1,-8,2.5,2.5);cx.restore();drawHpBar(x,y-20,e.hp,e.maxHp,24);}
-function drawArcher(cx,x,y,e){const b=Math.sin(e.animFrame*Math.PI*.5)*1;cx.save();cx.translate(x,y+b);if(e.hitFlash>0){cx.globalAlpha=.5+e.hitFlash*.5;cx.globalCompositeOperation='lighter';}drawShadow(0,4,12);cx.fillStyle=C.archer.body;cx.fillRect(-5,-19,10,18);cx.fillStyle='#c0611a';cx.fillRect(-3,-17,4,6);cx.fillStyle=C.archer.eye;cx.globalAlpha=.9;cx.fillRect(-3,-14,2,2);cx.fillRect(1,-14,2,2);cx.globalAlpha=1;cx.strokeStyle='#8B4513';cx.lineWidth=1.5;cx.beginPath();cx.arc(8,-12,7,-1.2,1.2);cx.stroke();cx.strokeStyle='#ddd';cx.lineWidth=.8;cx.beginPath();cx.moveTo(8,-19);cx.lineTo(8,-5);cx.stroke();cx.fillStyle='#c0611a';cx.fillRect(-4,0+(e.animFrame%2?1:0),3,5);cx.fillRect(1,0+(e.animFrame%2?0:1),3,5);cx.restore();drawHpBar(x,y-28,e.hp,e.maxHp,28);}
-function drawWraith(cx,x,y,e){const fl2=Math.sin(Date.now()*.002+e.id*.01)*3;cx.save();cx.translate(x,y+fl2);if(e.hitFlash>0){cx.globalAlpha=.5+e.hitFlash*.5;cx.globalCompositeOperation='lighter';}cx.globalAlpha=(cx.globalAlpha||1)*.75;cx.fillStyle=C.wraith.body;cx.beginPath();cx.ellipse(0,-8,9,14,0,0,Math.PI*2);cx.fill();cx.fillStyle='rgba(100,50,150,.4)';cx.beginPath();cx.ellipse(0,-8,7,12,0,0,Math.PI*2);cx.fill();cx.fillStyle=C.wraith.eye;cx.globalAlpha=.8+Math.sin(Date.now()*.007)*.2;cx.beginPath();cx.arc(-3,-10,2,0,Math.PI*2);cx.fill();cx.beginPath();cx.arc(3,-10,2,0,Math.PI*2);cx.fill();cx.globalAlpha=1;cx.restore();drawHpBar(x,y-28,e.hp,e.maxHp,28);}
+function drawGrunt(cx,x,y,e){const b=Math.sin(e.animFrame*Math.PI*.5)*1.2;cx.save();cx.translate(x,y+b);if(e.hitFlash>0){cx.globalAlpha=.5+e.hitFlash*.5;cx.globalCompositeOperation='lighter';}drawShadow(0,5);cx.fillStyle=C.grunt.body;cx.fillRect(-7,-17,14,17);cx.fillStyle='#8b1a10';cx.fillRect(-5,-15,5,7);cx.fillStyle=C.grunt.eye;cx.globalAlpha=.8+Math.sin(Date.now()*.006)*.2;cx.fillRect(-4,-13,2.5,2.5);cx.fillRect(1,-13,2.5,2.5);cx.globalAlpha=1;cx.fillStyle='#7a1208';cx.fillRect(-6,-1+(e.animFrame%2?0:1),4,4);cx.fillRect(2,-1+(e.animFrame%2?1:0),4,4);cx.restore();drawHpBar(x,y-25,e.hp,e.maxHp,28,e.eliteColor||null);}
+function drawBrute(cx,x,y,e){const b=Math.sin(e.animFrame*Math.PI*.5)*.8;cx.save();cx.translate(x,y+b);if(e.hitFlash>0){cx.globalAlpha=.5+e.hitFlash*.5;cx.globalCompositeOperation='lighter';}drawShadow(0,6,20);cx.fillStyle=C.brute.body;cx.fillRect(-11,-22,22,21);cx.fillStyle='#5a2880';cx.fillRect(-9,-20,9,10);cx.fillStyle=C.brute.eye;cx.globalAlpha=.9;cx.fillRect(-7,-16,4,4);cx.fillRect(3,-16,4,4);cx.globalAlpha=1;cx.fillStyle='#4a1a70';cx.fillRect(-13,-16,4,14);cx.fillRect(9,-16,4,14);cx.fillRect(-8,-1+(e.animFrame%2?2:0),5,6);cx.fillRect(3,-1+(e.animFrame%2?0:2),5,6);cx.restore();drawHpBar(x,y-32,e.hp,e.maxHp,36,e.eliteColor||null);}
+function drawSlime(cx,x,y,e){const sq=.85+Math.sin(e.animFrame*Math.PI*.5)*.15;cx.save();cx.translate(x,y);if(e.hitFlash>0){cx.globalAlpha=.5+e.hitFlash*.5;cx.globalCompositeOperation='lighter';}cx.scale(1,sq);cx.fillStyle=C.slime.body;cx.beginPath();cx.ellipse(0,-6,10,8,0,0,Math.PI*2);cx.fill();cx.fillStyle='rgba(255,255,255,.15)';cx.beginPath();cx.ellipse(-2,-9,4,2.5,-.3,0,Math.PI*2);cx.fill();cx.fillStyle=C.slime.eye;cx.fillRect(-4,-8,2.5,2.5);cx.fillRect(1,-8,2.5,2.5);cx.restore();drawHpBar(x,y-20,e.hp,e.maxHp,24,e.eliteColor||null);}
+function drawArcher(cx,x,y,e){const b=Math.sin(e.animFrame*Math.PI*.5)*1;cx.save();cx.translate(x,y+b);if(e.hitFlash>0){cx.globalAlpha=.5+e.hitFlash*.5;cx.globalCompositeOperation='lighter';}drawShadow(0,4,12);cx.fillStyle=C.archer.body;cx.fillRect(-5,-19,10,18);cx.fillStyle='#c0611a';cx.fillRect(-3,-17,4,6);cx.fillStyle=C.archer.eye;cx.globalAlpha=.9;cx.fillRect(-3,-14,2,2);cx.fillRect(1,-14,2,2);cx.globalAlpha=1;cx.strokeStyle='#8B4513';cx.lineWidth=1.5;cx.beginPath();cx.arc(8,-12,7,-1.2,1.2);cx.stroke();cx.strokeStyle='#ddd';cx.lineWidth=.8;cx.beginPath();cx.moveTo(8,-19);cx.lineTo(8,-5);cx.stroke();cx.fillStyle='#c0611a';cx.fillRect(-4,0+(e.animFrame%2?1:0),3,5);cx.fillRect(1,0+(e.animFrame%2?0:1),3,5);cx.restore();drawHpBar(x,y-28,e.hp,e.maxHp,28,e.eliteColor||null);}
+function drawWraith(cx,x,y,e){const fl2=Math.sin(Date.now()*.002+e.id*.01)*3;cx.save();cx.translate(x,y+fl2);if(e.hitFlash>0){cx.globalAlpha=.5+e.hitFlash*.5;cx.globalCompositeOperation='lighter';}cx.globalAlpha=(cx.globalAlpha||1)*.75;cx.fillStyle=C.wraith.body;cx.beginPath();cx.ellipse(0,-8,9,14,0,0,Math.PI*2);cx.fill();cx.fillStyle='rgba(100,50,150,.4)';cx.beginPath();cx.ellipse(0,-8,7,12,0,0,Math.PI*2);cx.fill();cx.fillStyle=C.wraith.eye;cx.globalAlpha=.8+Math.sin(Date.now()*.007)*.2;cx.beginPath();cx.arc(-3,-10,2,0,Math.PI*2);cx.fill();cx.beginPath();cx.arc(3,-10,2,0,Math.PI*2);cx.fill();cx.globalAlpha=1;cx.restore();drawHpBar(x,y-28,e.hp,e.maxHp,28,e.eliteColor||null);}
 
 function drawLavaBrute(cx,x,y,e){
   const b=Math.sin(e.animFrame*Math.PI*.5)*.9;cx.save();cx.translate(x,y+b);
@@ -1930,7 +2101,7 @@ function drawLavaBrute(cx,x,y,e){
   cx.fillRect(-13,-16+Math.sin(e.animFrame*Math.PI*.5)*3,4,14);
   cx.fillRect(9,-16-Math.sin(e.animFrame*Math.PI*.5)*3,4,14);
   cx.restore();
-  drawHpBar(x,y-30,e.hp,e.maxHp,36);
+  drawHpBar(x,y-30,e.hp,e.maxHp,36,e.eliteColor||null);
 }
 function drawEmber(cx,x,y,e){
   const fl=Math.sin(vfxTime*4+e.id*.1)*3;cx.save();cx.translate(x,y+fl);
@@ -1948,7 +2119,7 @@ function drawEmber(cx,x,y,e){
   cx.beginPath();cx.arc(-2,-10,1.5,0,Math.PI*2);cx.fill();
   cx.beginPath();cx.arc(2,-10,1.5,0,Math.PI*2);cx.fill();
   cx.restore();
-  drawHpBar(x,y-22,e.hp,e.maxHp,26);
+  drawHpBar(x,y-22,e.hp,e.maxHp,26,e.eliteColor||null);
 }
 function drawAshWraith(cx,x,y,e){
   const fl=Math.sin(vfxTime*2.5+e.id*.01)*4;cx.save();cx.translate(x,y+fl);
@@ -1963,7 +2134,7 @@ function drawAshWraith(cx,x,y,e){
   cx.beginPath();cx.arc(-3,-11,2.5,0,Math.PI*2);cx.fill();
   cx.beginPath();cx.arc(3,-11,2.5,0,Math.PI*2);cx.fill();
   cx.globalAlpha=1;cx.restore();
-  drawHpBar(x,y-28,e.hp,e.maxHp,28);
+  drawHpBar(x,y-28,e.hp,e.maxHp,28,e.eliteColor||null);
 }
 function drawScorcher(cx,x,y,e){
   const b=Math.sin(e.animFrame*Math.PI*.5)*1;cx.save();cx.translate(x,y+b);
@@ -1982,7 +2153,90 @@ function drawScorcher(cx,x,y,e){
   cx.fillStyle='#6d2600';
   cx.fillRect(-4,0+(e.animFrame%2?1:0),3,5);cx.fillRect(1,0+(e.animFrame%2?0:1),3,5);
   cx.restore();
-  drawHpBar(x,y-27,e.hp,e.maxHp,28);
+  drawHpBar(x,y-27,e.hp,e.maxHp,28,e.eliteColor||null);
+}
+
+
+// ── Biome Abyssal — draw functions ───────────────────────────────────
+function drawFrostShade(cx,x,y,e){
+  const fl=Math.sin(vfxTime*2+e.id*.01)*3;cx.save();cx.translate(x,y+fl);
+  if(e.hitFlash>0){cx.globalAlpha=.5+e.hitFlash*.5;cx.globalCompositeOperation='lighter';}
+  // Icy translucent body
+  cx.globalAlpha=.8;
+  cx.fillStyle='#0d47a1';
+  cx.beginPath();cx.ellipse(0,-8,10,16,0,0,Math.PI*2);cx.fill();
+  cx.fillStyle='#1565c0';
+  cx.beginPath();cx.ellipse(0,-10,7,12,0,0,Math.PI*2);cx.fill();
+  // Ice crystal fragments
+  cx.strokeStyle='#80d8ff';cx.lineWidth=1;cx.globalAlpha=.7+Math.sin(vfxTime*3)*.2;
+  for(let i=0;i<4;i++){const a=i/4*Math.PI*2+vfxTime;cx.beginPath();cx.moveTo(Math.cos(a)*4,Math.sin(a)*4-8);cx.lineTo(Math.cos(a)*9,Math.sin(a)*9-8);cx.stroke();}
+  // Cold eyes
+  cx.fillStyle='#e3f2fd';cx.globalAlpha=.95;
+  cx.beginPath();cx.arc(-3,-11,2,0,Math.PI*2);cx.fill();
+  cx.beginPath();cx.arc(3,-11,2,0,Math.PI*2);cx.fill();
+  cx.globalAlpha=1;cx.restore();
+  drawHpBar(x,y-28,e.hp,e.maxHp,28,e.eliteColor||'#42a5f5');
+}
+function drawAbyssalBehemoth(cx,x,y,e){
+  const b=Math.sin(e.animFrame*Math.PI*.4)*.8;cx.save();cx.translate(x,y+b);
+  if(e.hitFlash>0){cx.globalAlpha=.5+e.hitFlash*.5;cx.globalCompositeOperation='lighter';}
+  // Dark abyss glow
+  cx.globalAlpha=.15+Math.sin(vfxTime*2)*.08;cx.fillStyle='#aa00ff';
+  cx.beginPath();cx.ellipse(0,-12,22,22,0,0,Math.PI*2);cx.fill();cx.globalAlpha=1;
+  // Massive dark body
+  cx.fillStyle='#1a0033';cx.fillRect(-13,-26,26,25);
+  cx.fillStyle='#4a148c';cx.fillRect(-11,-24,11,12);
+  // Void cracks
+  cx.strokeStyle='#ea80fc';cx.lineWidth=1.5;
+  cx.beginPath();cx.moveTo(-7,-22);cx.lineTo(-3,-14);cx.lineTo(-7,-8);cx.stroke();
+  cx.beginPath();cx.moveTo(5,-20);cx.lineTo(8,-12);cx.stroke();
+  // Glowing eyes
+  cx.fillStyle='#ea80fc';cx.globalAlpha=.9+Math.sin(vfxTime*6)*.1;
+  cx.fillRect(-8,-18,5,5);cx.fillRect(3,-18,5,5);cx.globalAlpha=1;
+  // Arms
+  cx.fillStyle='#1a0033';
+  cx.fillRect(-15,-18+Math.sin(e.animFrame*Math.PI*.5)*3,4,16);
+  cx.fillRect(11,-18-Math.sin(e.animFrame*Math.PI*.5)*3,4,16);
+  cx.restore();
+  drawHpBar(x,y-34,e.hp,e.maxHp,38,e.eliteColor||'#ce93d8');
+}
+function drawVoidArcher(cx,x,y,e){
+  const b=Math.sin(e.animFrame*Math.PI*.5)*1;cx.save();cx.translate(x,y+b);
+  if(e.hitFlash>0){cx.globalAlpha=.5+e.hitFlash*.5;cx.globalCompositeOperation='lighter';}
+  cx.fillStyle='#1a0033';cx.fillRect(-5,-19,10,18);
+  cx.fillStyle='#4a148c';cx.fillRect(-3,-17,4,6);
+  // Void eyes
+  cx.fillStyle='#ea80fc';cx.globalAlpha=.9;cx.fillRect(-3,-14,2,2);cx.fillRect(1,-14,2,2);cx.globalAlpha=1;
+  // Dark matter bow
+  cx.strokeStyle='#7c4dff';cx.lineWidth=1.5;
+  cx.beginPath();cx.arc(8,-12,7,-1.2,1.2);cx.stroke();
+  cx.strokeStyle='#ea80fc';cx.lineWidth=.8;
+  cx.beginPath();cx.moveTo(8,-19);cx.lineTo(8,-5);cx.stroke();
+  cx.fillStyle='#1a0033';cx.fillRect(-4,0+(e.animFrame%2?1:0),3,5);cx.fillRect(1,0+(e.animFrame%2?0:1),3,5);
+  cx.restore();
+  drawHpBar(x,y-27,e.hp,e.maxHp,28,e.eliteColor||'#b39ddb');
+}
+function drawGlacialGolem(cx,x,y,e){
+  const b=Math.sin(e.animFrame*Math.PI*.3)*.6;cx.save();cx.translate(x,y+b);
+  if(e.hitFlash>0){cx.globalAlpha=.5+e.hitFlash*.5;cx.globalCompositeOperation='lighter';}
+  drawShadow(0,6,20);
+  // Ice blue body
+  cx.fillStyle='#0277bd';cx.fillRect(-11,-22,22,21);
+  cx.fillStyle='#01579b';cx.fillRect(-9,-20,9,10);
+  // Ice shards
+  cx.fillStyle='#80d8ff';cx.globalAlpha=.8;
+  cx.fillRect(-11,-20,3,8);cx.fillRect(8,-22,3,10);cx.fillRect(-5,-24,4,5);cx.globalAlpha=1;
+  // Cold core
+  cx.fillStyle='#e3f2fd';cx.globalAlpha=.7+Math.sin(vfxTime*3)*.2;
+  cx.fillRect(-4,-14,8,8);cx.globalAlpha=1;
+  // Eyes
+  cx.fillStyle='#0d47a1';cx.fillRect(-7,-16,4,4);cx.fillRect(3,-16,4,4);
+  // Arms
+  cx.fillStyle='#0277bd';
+  cx.fillRect(-13,-16+Math.sin(e.animFrame*Math.PI*.5)*2,4,14);
+  cx.fillRect(9,-16-Math.sin(e.animFrame*Math.PI*.5)*2,4,14);
+  cx.restore();
+  drawHpBar(x,y-32,e.hp,e.maxHp,36,e.eliteColor||'#29b6f6');
 }
 
 function drawGrid(){
@@ -2029,7 +2283,10 @@ function drawScene(){
     ctx.beginPath();ctx.ellipse(m.x,m.y,20,8,0,0,Math.PI*2);ctx.fill();
     ctx.shadowBlur=0;ctx.globalAlpha=1;ctx.restore();
   }
-  const G=state.golem;const sprites=[];
+  const G=state.golem;
+  // Draw elite ground auras
+  for(const e of state.enemies){if(e.isElite)drawEliteAura(e);}
+  const sprites=[];
   const gp=ISO.toScreen(G.col,G.row);sprites.push({d:G.col+G.row,fn:()=>drawGolem(gp.x,gp.y)});
   for(const e of state.enemies){const p=ISO.toScreen(e.col,e.row);sprites.push({d:e.col+e.row,fn:()=>e.draw(ctx,p.x,p.y,e)});}
   sprites.sort((a,b)=>a.d-b.d);for(const s of sprites)s.fn();
@@ -2159,7 +2416,14 @@ function openItemModal(item){
     openModal('📜 '+item.name,html);return;
   }
   const cmp=item.slot?getEquipComparison(item):[];const cur=item.slot?state.golem.equipped[item.slot]:null;
-  let statsHtml=Object.entries(item.stats||{}).filter(([,v])=>v!==0).map(([k,v])=>`<span class="mic-stat ${v>0?'pos':'neg'}">${STAT_LABELS[k]||k}: ${v>0?'+':''}${v}</span>`).join('');
+  // Base stats vs affix stats separation
+  const baseItem=ITEMS.find(i=>i.id===item.id)||item;
+  const baseStats=baseItem.stats||{};
+  const affixStats=item.affixes||[];
+  let statsHtml=Object.entries(item.stats||{}).filter(([,v])=>v!==0).map(([k,v])=>{
+    const base=baseStats[k]||0;const bonus=v-base;
+    return `<span class="mic-stat ${v>0?'pos':'neg'}">${STAT_LABELS[k]||k}: ${v>0?'+':''}${v}${bonus>0?` <span style="font-size:9px;color:var(--gold)">(+${bonus.toFixed(1)} roulé)</span>`:''}  </span>`;
+  }).join('');
   let html=`<div class="modal-item-card"><div class="mic-header"><div class="mic-icon">${item.icon}</div><div class="mic-title"><div class="mic-name">${item.name}</div><div class="mic-rarity ${item.rarity}">${item.rarity.toUpperCase()}</div>${item.slot?`<div style="font-size:8px;color:var(--muted)">Slot: ${item.slot.toUpperCase()}</div>`:''}</div></div><div class="mic-stats">${statsHtml||'—'}</div></div>`;
   if(item.slot&&cmp.length){
     html+=`<div class="modal-section"><div class="modal-section-title">VS ${cur?cur.icon+' '+cur.name:'slot vide'}</div>`;
@@ -2268,7 +2532,7 @@ function gameLoop(ts){
 
 // ══ SAVE / LOAD ════════════════════════════════════════════════════════
 window.addEventListener('beforeunload',()=>{
-  localStorage.setItem('golemExe6',JSON.stringify({
+  localStorage.setItem('golemExe7',JSON.stringify({
     baseStats:state.golem.baseStats,
     golem:{hp:state.golem.hp,mp:state.golem.mp,xp:state.golem.xp,xpNext:state.golem.xpNext,level:state.golem.level,gold:state.golem.gold,atkSpd:state.golem.atkSpd,cdReduction:state.golem.cdReduction,mpRegen:state.golem.mpRegen,hpRegen:state.golem.hpRegen,spellSlotsMax:state.golem.spellSlotsMax},
     equipped:state.golem.equipped,equippedSpells:state.golem.equippedSpells,
@@ -2283,7 +2547,7 @@ window.addEventListener('beforeunload',()=>{
 // ══ INIT ══════════════════════════════════════════════════════════════
 function init(){
   resizeCanvas();initSpells();
-  const sv=localStorage.getItem('golemExe6')||localStorage.getItem('golemExe5')||localStorage.getItem('golemExe4');
+  const sv=localStorage.getItem('golemExe7')||localStorage.getItem('golemExe6')||localStorage.getItem('golemExe5')||localStorage.getItem('golemExe4');
   if(sv){try{
     const s=JSON.parse(sv);
     if(s.baseStats)state.golem.baseStats={...s.baseStats};
@@ -2326,7 +2590,7 @@ function init(){
     recalcStats();addLog('💾 Partie chargée!','log-spell');
   }catch(e){console.warn(e);}}
   renderInventory();renderEquip();renderSpellSlots();renderSpells();renderUpgrades();renderAchievements();updateUI();
-  addLog('⬡ GOLEM.EXE v2.2 — Biomes, DoT, Tiers, Monde infini!','log-spell');
+  addLog('⬡ GOLEM.EXE v2.5 — Élites, Affixes, Abysses!','log-spell');
   requestAnimationFrame(ts=>{lastTime=ts;gameLoop(ts);});
 }
 init();
