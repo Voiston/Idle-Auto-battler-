@@ -1316,7 +1316,7 @@ const ACH_DEFS=[
   {id:'slayer_100',   icon:'💀',name:'Cent Lames',       desc:'100 ennemis tués',              cat:'combat', target:100, stat:'totalKills',    reward:'+3 STR permanent',   bonusFn:(G)=>{G.baseStats.str+=3;}},
   {id:'slayer_500',   icon:'⚔️',name:'Boucher',          desc:'500 ennemis tués',              cat:'combat', target:500, stat:'totalKills',    reward:'+8 ATK permanent',   bonusFn:(G)=>{G.baseStats.atkDmg+=8;}},
   {id:'slayer_1000',  icon:'🔱',name:'Exterminateur',    desc:'1000 ennemis tués',             cat:'combat', target:1000,stat:'totalKills',    reward:'+15% crit chance',   bonusFn:(G)=>{G.baseStats.critChance+=15;}},
-  {id:'crit_50',      icon:'🎯',name:'Tireur d'Élite', desc:'50 coups critiques',             cat:'combat', target:50,  stat:'totalCrits',    reward:'+0.2 ATK Speed',    bonusFn:(G)=>{G.baseStats.atkSpd+=.2;}},
+  {id:'crit_50',      icon:'🎯',name:"Tireur d'Elite", desc:'50 coups critiques',             cat:'combat', target:50,  stat:'totalCrits',    reward:'+0.2 ATK Speed',    bonusFn:(G)=>{G.baseStats.atkSpd+=.2;}},
   {id:'crit_500',     icon:'⚡',name:'Instinct Prédateur',desc:'500 critiques',                cat:'combat', target:500, stat:'totalCrits',    reward:'+10% dmg critique',  bonusFn:(G)=>{G.critDmgBonus=(G.critDmgBonus||0)+.10;}},
   // VAGUES
   {id:'wave_5',       icon:'🌊',name:'Survivant',        desc:'Atteindre la vague 5',          cat:'waves',  target:5,   stat:'maxWave',       reward:'+20 HP MAX',        bonusFn:(G)=>{G.baseStats.maxHp+=20;}},
