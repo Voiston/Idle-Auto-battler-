@@ -6,7 +6,7 @@ function recalcStats(){
   G.resFire=B.resFire||0;G.resIce=B.resIce||0;G.resVoid=B.resVoid||0;
   for(const it of Object.values(G.equipped)){
     if(!it)continue;
-    for(const[k,v]of Object.entries(it.stats)){const p=STAT_MAP[k];if(p)G[p]+=v;}
+    for(const[k,v]of Object.entries(it.stats||{})){if(typeof v!=='number')continue;const p=STAT_MAP[k];if(p)G[p]+=v;}
   }
   G.hp=Math.min(G.hp,G.maxHp);G.mp=Math.min(G.mp,G.maxMp);
   G.critChance=Math.max(1,Math.min(80,G.critChance));G.spd=Math.max(1,G.spd);G.def=Math.max(0,G.def);

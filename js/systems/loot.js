@@ -16,30 +16,29 @@ const AFFIX_POOL=[
 const AFFIX_COUNT={common:0,uncommon:1,rare:2,epic:3,legendary:4};
 
 function generateAffixes(tmpl,ilvl){
-  ilvl=ilvl||1;
-  const n=AFFIX_COUNT[tmpl.rarity]||0;
-  if(n===0)return{affixes:[],stats:{...tmpl.stats}};
-  // Pick n random unique affixes
-  const pool=[...AFFIX_POOL].sort(()=>Math.random()-.5).slice(0,n);
-  // Scale base stats by item level: +5% per ilvl
+  ilvl=Math.max(1,ilvl||1);
   const ilvlMult = 1 + (ilvl-1) * 0.05;
+  // Scale base stats by ilvl for ALL rarities
   const newStats={};
   for(const [k,v] of Object.entries(tmpl.stats||{})){
+    if(typeof v !== 'number'){newStats[k]=v;continue;}
     newStats[k] = k==='spd' ? Math.round(v*ilvlMult*10)/10 : Math.round(v*ilvlMult);
   }
+  const n=AFFIX_COUNT[tmpl.rarity]||0;
+  if(n===0)return{affixes:[],stats:newStats};
+  // Pick n random unique affixes
+  const pool=[...AFFIX_POOL].sort(()=>Math.random()-.5).slice(0,n);
   const affixes=[];
   for(const aff of pool){
     const range=aff.ranges[tmpl.rarity]||[1,2];
-    let val=Math.round((range[0]+Math.random()*(range[1]-range[0]))*10)/10;
+    let val=Math.round((range[0]+Math.random()*(range[1]-range[0]))*ilvlMult*10)/10;
     if(aff.stat!=='spd')val=Math.round(val);
-    // Only add if meaningful
     if(val===0)continue;
     newStats[aff.stat]=(newStats[aff.stat]||0)+val;
     affixes.push({name:aff.name,stat:aff.stat,val});
   }
-  // Rename item with first affix suffix
   const firstName=affixes[0]?.name||'';
-  return{affixes,stats:newStats,name:firstName?`${tmpl.name} ${firstName}`:tmpl.name};
+  return{affixes,stats:newStats,name:firstName?tmpl.name+' '+firstName:tmpl.name};
 }
 
 function formatAffixStats(item){
