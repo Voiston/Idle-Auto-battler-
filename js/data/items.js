@@ -197,9 +197,9 @@ function getLootWeights(wave){
   return {
     common:    Math.max(5,  50 - waveBonus*.4),
     uncommon:  Math.max(10, 30 + waveBonus*.1),
-    rare:      Math.max(5,  15 + waveBonus*.2),
+    rare:      Math.max(2.5,(15 + waveBonus*.2)  / 2),   // ÷2
     epic:      Math.max(1,  4  + waveBonus*.08),
-    legendary: Math.max(.2, 1  + waveBonus*.02),
+    legendary: Math.max(.05,(1  + waveBonus*.02) / 4),   // ÷4
   };
 }
 const RW={common:45,uncommon:30,rare:17,epic:6,legendary:2}; // kept for reference
