@@ -147,6 +147,87 @@ function initModals(){
 }
 function openModal(title,html){modalTitle.textContent=title;modalBody.innerHTML=html;modalOverlay.classList.add('open');}
 function closeModal(){modalOverlay.classList.remove('open');}
+
+// ══ STAT TOOLTIPS (long-press on mobile) ══════════════════════════════
+const STAT_TIPS = {
+  STR:  {title:'Force (STR)',     body:'Augmente les dégâts des attaques physiques et sorts de force. Formule: ATK + STR×0.8'},
+  INT:  {title:'Intelligence (INT)',body:'Augmente les dégâts des sorts magiques. Les sorts INT-based utilisent INT×1.1 à 1.5.'},
+  SPD:  {title:'Vitesse (SPD)',   body:"Augmente la vitesse de déplacement et légèrement la vitesse d'attaque."},
+  DEF:  {title:'Défense (DEF)',   body:'Réduit les dégâts reçus: max(1, dmg - DEF×0.6). Plus utile contre les ennemis normaux.'},
+  ATK:  {title:'Attaque (ATK)',   body:"Dégâts de base pour toutes les attaques. S'ajoute aux multiplicateurs de sorts."},
+  CRIT: {title:'Chance Critique', body:'% de chance de déclencher un coup critique (×1.85 + scaling). Cap à 80%.'},
+  'HP MAX': {title:'Points de Vie Max',body:"Détermine votre résistance. Chaque level up octroie +15 HP. Les items peuvent en donner jusqu'à +80."},
+  'MP MAX': {title:'Points de Mana Max',body:'Nécessaire pour lancer les sorts. Se régénère automatiquement (2 MP/s de base).'},
+  'Rés. Feu': {title:'Résistance au Feu', body:'Réduit les dégâts de brûlure reçus (DoT). Cap à 75%. Sources: items volcaniques, set Tal Rasha.'},
+  'Rés. Glace':{title:'Résistance au Froid',body:'Réduit les dégâts de gel reçus. Cap à 75%. Indispensable au biome Abyssal (vague 18+).'},
+  'Rés. Vide': {title:'Résistance au Vide', body:'Réduit les dégâts de vide reçus (DoT void). Cap à 75%. Crucial contre les monstres abyssaux.'},
+};
+
+let _tipTimer = null;
+let _tipEl = null;
+
+function showStatTooltip(key, targetEl){
+  const tip = STAT_TIPS[key]; if(!tip) return;
+  if(!_tipEl) _tipEl = document.getElementById('stat-tooltip');
+  document.getElementById('stt-title').textContent = tip.title;
+  document.getElementById('stt-body').innerHTML = tip.body.replace(
+    /(\d+[\d%.×]+)/g, '<span class="stt-value">$1</span>'
+  );
+  // Position near element
+  const rect = targetEl.getBoundingClientRect();
+  const ttEl = _tipEl;
+  ttEl.style.left = Math.min(rect.left, window.innerWidth - 240) + 'px';
+  ttEl.style.top  = Math.max(4, rect.top - 130) + 'px';
+  ttEl.classList.add('visible');
+  // Auto-hide after 3s
+  clearTimeout(_tipTimer);
+  _tipTimer = setTimeout(hideStatTooltip, 3000);
+}
+
+function hideStatTooltip(){
+  if(!_tipEl) _tipEl = document.getElementById('stat-tooltip');
+  if(_tipEl) _tipEl.classList.remove('visible');
+}
+
+function initStatTooltips(){
+  // Long-press on .sstat elements (300ms)
+  document.querySelectorAll('.sstat').forEach(el => {
+    let pressTimer = null;
+    const lbl = el.querySelector('.sstat-lbl');
+    if(!lbl) return;
+    const key = lbl.textContent.trim();
+
+    el.addEventListener('touchstart', e => {
+      pressTimer = setTimeout(() => {
+        showStatTooltip(key, el);
+        if(typeof SFX!=='undefined') SFX.buy();
+      }, 300);
+    }, {passive:true});
+
+    el.addEventListener('touchend',   () => clearTimeout(pressTimer), {passive:true});
+    el.addEventListener('touchmove',  () => clearTimeout(pressTimer), {passive:true});
+    // Desktop: click
+    el.addEventListener('click', () => showStatTooltip(key, el));
+  });
+
+  // Also for res-strip
+  document.querySelectorAll('.res-stat').forEach(el => {
+    const lbl = el.querySelector('.res-lbl');
+    if(!lbl) return;
+    const key = lbl.textContent.replace(/[🔥❄️🌀]/g,'').trim();
+    const resKeyMap = {'FEU':'Rés. Feu','GLACE':'Rés. Glace','VIDE':'Rés. Vide'};
+    const tipKey = resKeyMap[key] || key;
+    el.addEventListener('click', () => showStatTooltip(tipKey, el));
+  });
+
+  // Tap outside to dismiss
+  document.addEventListener('touchstart', e => {
+    if(!e.target.closest('.sstat') && !e.target.closest('.res-stat') && !e.target.closest('#stat-tooltip')){
+      hideStatTooltip();
+    }
+  }, {passive:true});
+}
+
 function initEventListeners(){
   
   document.getElementById('modal-close').addEventListener('click',closeModal);

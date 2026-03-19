@@ -50,6 +50,22 @@ function drawHpBar(x,y,hp,max,w=28,eliteColor=null){
   ctx.shadowBlur=0;
 }
 function drawGolem(x,y){
+  const G2sf=state.golem;
+  // Set bonus flash aura
+  if(G2sf._setFlashTimer>0){G2sf._setFlashTimer-=0.016;
+    G._setFlashTimer-=0.016; // approx dt (drawn each frame)
+    const alpha=Math.min(1,G._setFlashTimer)*0.55;
+    ctx.save();
+    const sfAlpha=Math.min(1,G2sf._setFlashTimer)*0.55;
+    ctx.globalAlpha=sfAlpha;
+    ctx.shadowColor=G2sf._setFlashColor||'#fff';
+    ctx.shadowBlur=30+Math.sin(G2sf._setFlashTimer*8)*10;
+    ctx.beginPath();ctx.arc(x,y-16,22,0,Math.PI*2);
+    ctx.fillStyle=G2sf._setFlashColor||'#fff';
+    ctx.fill();
+    ctx.restore();
+  }
+
   const G=state.golem;const bob=Math.sin(G.animFrame*Math.PI*.5)*1.2;const fl=G.hitFlash>0;
   ctx.save();ctx.translate(x,y+bob);
   const sc={patrol:'#4a7aff',chase:'#ffd700',flee:'#ef4444',attack:'#ff6b35'};
@@ -255,7 +271,15 @@ function drawGrid(){
     }
   }
 }
-function drawParticles(){for(const p of state.particles){ctx.globalAlpha=p.life/p.maxLife;ctx.fillStyle=p.color;ctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size);}ctx.globalAlpha=1;}
+function drawParticles(){
+  for(let i=0;i<PARTICLE_POOL_SIZE;i++){
+    const p=_partPool[i];if(!p.active)continue;
+    ctx.globalAlpha=Math.max(0,p.life/p.maxLife);
+    ctx.fillStyle=p.color;
+    ctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size);
+  }
+  ctx.globalAlpha=1;
+}
 function drawScene(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   drawGrid();
