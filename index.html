@@ -389,6 +389,49 @@
     .elite-crown{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:11px;pointer-events:none;animation:crownBob .8s ease infinite alternate;}
     @keyframes crownBob{from{transform:translateX(-50%) translateY(0)}to{transform:translateX(-50%) translateY(-3px)}}
 
+
+    /* ── ARTISANAT ── */
+    #panel-craft{padding:10px 12px;overflow-y:auto;}
+    .craft-section{margin-bottom:12px;}
+    .craft-title{font-family:'Cinzel',serif;font-size:10px;color:var(--gold);letter-spacing:2px;margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid rgba(255,193,7,.15);}
+    #craft-slots{display:flex;gap:5px;margin-bottom:8px;align-items:center;}
+    .craft-slot{
+      width:48px;height:48px;border:2px dashed var(--border2);border-radius:8px;
+      background:rgba(5,6,12,.7);display:flex;align-items:center;justify-content:center;
+      font-size:20px;position:relative;cursor:pointer;transition:all .2s;
+      flex-shrink:0;
+    }
+    .craft-slot.filled{border-style:solid;border-color:var(--gold);background:rgba(255,193,7,.06);}
+    .craft-slot.filled::after{content:'';position:absolute;top:0;right:0;width:0;height:0;border-style:solid;border-width:0 8px 8px 0;border-color:transparent var(--gold) transparent transparent;border-radius:0 6px 0 0;}
+    .craft-plus{color:var(--muted);font-size:18px;flex-shrink:0;}
+    .craft-result{flex:1;min-height:48px;border:2px solid var(--border2);border-radius:8px;background:rgba(5,6,12,.5);display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 10px;}
+    .craft-result.ready{border-color:var(--gold);background:rgba(255,193,7,.06);box-shadow:0 0 12px rgba(255,193,7,.2);}
+    #craft-info{font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.5;padding:6px 8px;background:rgba(255,255,255,.02);border-radius:5px;border:1px solid var(--border);}
+    #craft-auto-btn{width:100%;padding:8px;background:rgba(79,195,247,.06);border:1px solid var(--accent);color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:11px;border-radius:6px;cursor:pointer;margin-bottom:6px;transition:all .2s;}
+    #craft-auto-btn:active{background:rgba(79,195,247,.15);}
+    #craft-go-btn{width:100%;padding:10px;background:rgba(255,193,7,.08);border:1px solid var(--gold);color:var(--gold);font-family:'Cinzel',serif;font-size:12px;border-radius:6px;cursor:pointer;transition:all .2s;letter-spacing:1px;}
+    #craft-go-btn:active{background:rgba(255,193,7,.2);}
+    #craft-go-btn:disabled{opacity:.35;cursor:not-allowed;}
+    .craft-selected{outline:2px solid var(--accent);outline-offset:2px;}
+
+    /* ── RESISTANCES ── */
+    #res-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:4px 8px;background:rgba(255,255,255,.02);border-top:1px solid var(--border);}
+    .res-stat{display:flex;flex-direction:column;align-items:center;padding:3px 0;}
+    .res-lbl{font-size:7px;color:var(--muted);letter-spacing:.5px;}
+    .res-val{font-size:11px;font-family:'Orbitron',sans-serif;font-weight:bold;margin-top:1px;}
+    .res-fire{color:#ff7043;}.res-ice{color:#42a5f5;}.res-void{color:#ce93d8;}
+
+    /* ── POWER SCORE ── */
+    #power-score-row{display:flex;align-items:center;justify-content:center;gap:6px;padding:3px 10px 4px;border-top:1px solid var(--border);background:rgba(255,193,7,.025);}
+    #power-score-val{font-family:'Orbitron',sans-serif;font-size:13px;color:var(--gold);text-shadow:var(--glow-gold);}
+    .ps-lbl{font-size:9px;color:var(--muted);letter-spacing:.5px;}
+    .ps-tier{font-size:9px;padding:1px 6px;border-radius:4px;border:1px solid;margin-left:4px;}
+    .ps-normal  {color:#9e9e9e;border-color:#9e9e9e;}
+    .ps-fort    {color:var(--c-uncommon);border-color:var(--c-uncommon);}
+    .ps-puissant{color:var(--c-rare);border-color:var(--c-rare);}
+    .ps-heroique{color:var(--c-epic);border-color:var(--c-epic);}
+    .ps-divin   {color:var(--c-legendary);border-color:var(--c-legendary);}
+
     @keyframes waveFlash{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}70%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.1)}}
   </style>
 </head>
@@ -427,6 +470,16 @@
         <div class="sstat"><div class="sstat-lbl">CRIT</div><div class="sstat-val" id="s-crit">5%</div></div>
       </div>
       <div id="gold-row"><div id="gold-lbl">⬡ GOLD</div><div id="gold-val">0 G</div></div>
+      <div id="res-strip">
+        <div class="res-stat"><div class="res-lbl">🔥 FEU</div><div class="res-val res-fire" id="r-fire">0%</div></div>
+        <div class="res-stat"><div class="res-lbl">❄️ GLACE</div><div class="res-val res-ice" id="r-ice">0%</div></div>
+        <div class="res-stat"><div class="res-lbl">🌀 VIDE</div><div class="res-val res-void" id="r-void">0%</div></div>
+      </div>
+      <div id="power-score-row">
+        <div class="ps-lbl">⚡ PUISSANCE</div>
+        <div id="power-score-val">0</div>
+        <div id="power-score-tier" class="ps-tier ps-normal">Normal</div>
+      </div>
     </div>
     <div id="drawer-handle">
       <div id="handle-tabs">
@@ -435,6 +488,7 @@
         <div class="htab" data-tab="spells"><span class="htab-icon">✨</span>SORTS</div>
         <div class="htab" data-tab="upgrades"><span class="htab-icon">⬆️</span>AMÉLIO</div>
         <div class="htab" data-tab="achievements"><span class="htab-icon">🏆</span>DÉFIS</div>
+        <div class="htab" data-tab="craft"><span class="htab-icon">⚒️</span>FORGE</div>
       </div>
       <div id="handle-toggle">▲</div>
     </div>
@@ -482,6 +536,22 @@
         <div class="drawer-panel" id="panel-achievements">
           <div class="panel-title">⬡ Défis &amp; Achievements</div>
           <div id="ach-list"></div>
+        </div>
+        <!-- CRAFT -->
+        <div class="drawer-panel" id="panel-craft">
+          <div class="panel-title">⚒️ Forge — Fusion d'équipements</div>
+          <div id="craft-info">Sélectionne 3 items de même rareté pour créer un item de rareté supérieure avec de meilleurs affixes.</div>
+          <button id="craft-auto-btn">⚡ AUTO-SÉLECTION (meilleurs items)</button>
+          <div id="craft-slots">
+            <div class="craft-slot" id="cslot-0" onclick="toggleCraftSlotClick(0)">＋</div>
+            <div class="craft-plus">＋</div>
+            <div class="craft-slot" id="cslot-1" onclick="toggleCraftSlotClick(1)">＋</div>
+            <div class="craft-plus">＋</div>
+            <div class="craft-slot" id="cslot-2" onclick="toggleCraftSlotClick(2)">＋</div>
+            <div class="craft-plus">→</div>
+            <div class="craft-result" id="craft-result-preview">?</div>
+          </div>
+          <button id="craft-go-btn" disabled onclick="doCraft()">⚒️ FORGER</button>
         </div>
         <!-- UPGRADES -->
         <div class="drawer-panel" id="panel-upgrades">
@@ -919,6 +989,7 @@ function fxArcStorm(gx,gy,targets){
 // ══ STATE ══════════════════════════════════════════════════════════════
 const BASE_STATS={hp:100,maxHp:100,mp:50,maxMp:50,xp:0,xpNext:100,level:1,
   str:10,int:8,spd:5,def:3,atkDmg:12,atkSpd:1.2,critChance:5,gold:0};
+const BASE_RES={resFire:0,resIce:0,resVoid:0};
 const state={
   golem:{
     ...JSON.parse(JSON.stringify(BASE_STATS)),
@@ -927,7 +998,7 @@ const state={
     equipped:{head:null,body:null,arm1:null,arm2:null,belt:null,boots:null},
     equippedSpells:[null,null,null,null],
     spellSlotsMax:4,
-    baseStats:{...JSON.parse(JSON.stringify(BASE_STATS))},
+    baseStats:{...JSON.parse(JSON.stringify(BASE_STATS)),...BASE_RES},
     cdReduction:0,mpRegen:2,hpRegen:1,
     upgrades:{}, // id→level
   },
@@ -1012,9 +1083,14 @@ const SPELL_DEFS=[
   // ── NEW SPELLS v2 ─────────────────────────────────────────────────
   {id:'counter',   name:'Contre-Attaque',  icon:'🔄',desc:'Réplique 200% ATK après chaque coup reçu (5s)',  type:'active', cd:16,mp:18,lvl:4,dmgMult:2.0,tag:'active'},
   {id:'haste',     name:'Hâte',            icon:'💨',desc:'+50% vitesse attaque + déplacement 6s',          type:'active', cd:14,mp:15,lvl:3,tag:'active'},
-  {id:'thorns',    name:'Aura d'Épines',  icon:'🌵',desc:'Passif: 30% des dégâts reçus renvoyés',          type:'passive',cd:0, mp:0, lvl:5,thornPct:.30,tag:'passive'},
+  {id:'thorns',    name:"Aura d'Epines",  icon:'🌵',desc:'Passif: 30% des dégâts reçus renvoyés',          type:'passive',cd:0, mp:0, lvl:5,thornPct:.30,tag:'passive'},
   {id:'soulrip',   name:'Déchirement',     icon:'💔',desc:'Réduit DEF cible de 40% pendant 4s (150% ATK)', type:'active', cd:9, mp:12,lvl:3,dmgMult:1.5,tag:'active'},
   {id:'blink',     name:'Téléportation',   icon:'⚡',desc:'Téléporte le Golem vers la cible + 300% ATK',    type:'active', cd:18,mp:22,lvl:5,dmgMult:3.0,tag:'active'},
+
+  // ── NOUVEAUX SORTS DIABLO v3 ─────────────────────────────────────
+  {id:'warcry',    name:'Cri de Guerre',  icon:'📣',desc:'+30% ATK/DEF/SPD à tous les sorts actifs 8s',   type:'active', cd:20,mp:18,lvl:5,tag:'active'},
+  {id:'bonespear', name:'Lance d'Os',    icon:'🦴',desc:'Projectile perçant: 350% ATK sur ligne ennemis',type:'active', cd:8, mp:20,lvl:4,dmgMult:3.5,tag:'active'},
+  {id:'soulharvest',name:'Moisson d'Âmes',icon:'💠',desc:'Passif: +2% DMG permanent par ennemi tué (max 100)',type:'passive',cd:0,mp:0,lvl:6,tag:'passive'},
   {id:'sacrifice', name:'Sacrifice',       icon:'🩹',desc:'Consomme 25% HP pour soigner 80% HP max',        type:'active', cd:30,mp:0, lvl:6,tag:'active'},
 ];
 const ITEMS=[
@@ -1074,6 +1150,14 @@ const ITEMS=[
   // ── NEW LEGENDARY ─────────────────────────────────────────────────
   {id:'a6', name:'Brassards du Chaos', icon:'⚡',slot:'arm1', rarity:'legendary',stats:{str:12,atk:10,crit:15,int:8}},
   {id:'r7', name:'Ceinture de l\'Infini',icon:'♾️',slot:'belt',rarity:'legendary',stats:{str:10,int:10,spd:5,crit:8,hp:30}},
+
+  // ── ITEMS DIABLO v3 — avec résistances élémentaires ──────────────
+  {id:'dq1',name:'Manteau du Phénix',  icon:'🔥',slot:'body', rarity:'rare',     stats:{def:7,rfire:20,str:4,hp:18}},
+  {id:'dq2',name:'Heaume du Blizzard', icon:'🧊',slot:'head', rarity:'rare',     stats:{def:5,rice:20,int:5,mp:12}},
+  {id:'dq3',name:'Bottes du Neant',    icon:'🌀',slot:'boots',rarity:'rare',     stats:{spd:4,rvoid:20,crit:4}},
+  {id:'dq4',name:'Egide Runique',      icon:'🛡️',slot:'arm1', rarity:'epic',     stats:{def:12,rfire:15,rice:15,str:6}},
+  {id:'dq5',name:'Couronne du Vide',   icon:'🌑',slot:'head', rarity:'epic',     stats:{int:12,rvoid:25,crit:10,mp:20}},
+  {id:'dq6',name:'Ensemble Primordial',icon:'⚜️',slot:'body', rarity:'legendary',stats:{def:16,hp:45,rfire:25,rice:25,rvoid:25,str:8,int:8}},
   {id:'sc13',name:'Parchemin: Tempête',icon:'📜',slot:null,   rarity:'legendary',stats:{},spell:'arcstorm'},
   // ── NEW ITEMS v2 ──────────────────────────────────────────────────
   // Uncommon — couvre les lacunes stat
@@ -1085,7 +1169,7 @@ const ITEMS=[
   {id:'ni5',name:'Gantelets du Sang',    icon:'🩺',slot:'arm1', rarity:'rare',     stats:{str:5,atk:4,crit:6}},
   {id:'ni6',name:'Lame Venimeuse',       icon:'🐍',slot:'arm2', rarity:'rare',     stats:{atk:11,crit:7,int:3}},
   // Epic — spécialisés
-  {id:'ni7',name:'Armure de l'Abysse', icon:'🌑',slot:'body', rarity:'epic',     stats:{def:14,int:8,hp:25,mp:15}},
+  {id:'ni7',name:"Armure de l'Abysse", icon:'🌑',slot:'body', rarity:'epic',     stats:{def:14,int:8,hp:25,mp:15}},
   {id:'ni8',name:'Griffes du Démon',    icon:'😈',slot:'arm1', rarity:'epic',     stats:{str:10,atk:8,crit:10,spd:2}},
   {id:'ni9',name:'Heaume du Lich',      icon:'💀',slot:'head', rarity:'epic',     stats:{int:12,crit:8,mp:22,def:6}},
   // Legendary
@@ -1117,9 +1201,9 @@ const ETYPES={
   brute: {hp:80,dmg:14,spd:.55,range:1.5,xp:40,gold:8,threat:3,name:'Brute', draw:drawBrute},
   wraith:   {hp:45,dmg:10,spd:1.3,range:1.2,xp:35,gold:7, threat:2,name:'Spectre',  draw:drawWraith},
   // ── Biome Abyssal ──
-  frostshade:      {hp:55, dmg:12,spd:1.4,range:1.2,xp:50,gold:11,threat:2,name:'Spectre Givré', draw:drawFrostShade,    dotOnHit:{type:'bleed',dmg:4,dur:3},  slowOnHitVal:.3},
-  abyssalbehemoth: {hp:200,dmg:30,spd:.45,range:1.6,xp:100,gold:25,threat:5,name:'Béhémoth Abyssal',draw:drawAbyssalBehemoth,dotOnHit:{type:'bleed',dmg:8,dur:5}},
-  voidarcher:      {hp:40, dmg:20,spd:.7, range:4.5,xp:60,gold:14,threat:3,name:'Archer du Vide',  draw:drawVoidArcher,    dotOnHit:{type:'bleed',dmg:6,dur:4}},
+  frostshade:      {hp:55, dmg:12,spd:1.4,range:1.2,xp:50,gold:11,threat:2,name:'Spectre Givré', draw:drawFrostShade,    dotOnHit:{type:'void',dmg:4,dur:3}, slowOnHitVal:.3},
+  abyssalbehemoth: {hp:200,dmg:30,spd:.45,range:1.6,xp:100,gold:25,threat:5,name:'Béhémoth Abyssal',draw:drawAbyssalBehemoth,dotOnHit:{type:'void',dmg:10,dur:5}},
+  voidarcher:      {hp:40, dmg:20,spd:.7, range:4.5,xp:60,gold:14,threat:3,name:'Archer du Vide',  draw:drawVoidArcher,    dotOnHit:{type:'void',dmg:7,dur:4}},
   glacialgolem:    {hp:150,dmg:22,spd:.5, range:1.5,xp:80,gold:20,threat:4,name:'Golem Glacial',   draw:drawGlacialGolem,  slowOnHitVal:.4},
   // ── Biome Volcanique ──
   lavabrute:{hp:120,dmg:22,spd:.5, range:1.6,xp:65,gold:15,threat:4,name:'Brute de Lave',draw:drawLavaBrute, dotOnHit:{type:'burn',dmg:4,dur:3}},
@@ -1127,20 +1211,22 @@ const ETYPES={
   ashwraith:{hp:60, dmg:15,spd:1.2,range:1.3,xp:55,gold:12,threat:3,name:'Spectre Cendre',draw:drawAshWraith,dotOnHit:{type:'burn',dmg:5,dur:4}},
   scorcher: {hp:35, dmg:18,spd:.75, range:4.0,xp:45,gold:10,threat:2,name:'Carboniseur',  draw:drawScorcher,  dotOnHit:{type:'burn',dmg:6,dur:3}},
 };
-const STAT_MAP={str:'str',int:'int',spd:'spd',def:'def',atk:'atkDmg',crit:'critChance',hp:'maxHp',mp:'maxMp'};
-const STAT_LABELS={str:'STR',int:'INT',spd:'SPD',def:'DEF',atk:'ATK',crit:'CRIT',hp:'HP MAX',mp:'MP MAX'};
+const STAT_MAP={str:'str',int:'int',spd:'spd',def:'def',atk:'atkDmg',crit:'critChance',hp:'maxHp',mp:'maxMp',rfire:'resFire',rice:'resIce',rvoid:'resVoid'};
+const STAT_LABELS={str:'STR',int:'INT',spd:'SPD',def:'DEF',atk:'ATK',crit:'CRIT',hp:'HP MAX',mp:'MP MAX',rfire:'Rés. Feu',rice:'Rés. Glace',rvoid:'Rés. Vide'};
 
 // ══ EQUIPMENT ENGINE ══════════════════════════════════════════════════
 function recalcStats(){
   const G=state.golem;const B=G.baseStats;
   G.str=B.str;G.int=B.int;G.spd=B.spd;G.def=B.def;G.atkDmg=B.atkDmg;
   G.critChance=B.critChance;G.maxHp=B.maxHp;G.maxMp=B.maxMp;G.atkSpd=B.atkSpd;
+  G.resFire=B.resFire||0;G.resIce=B.resIce||0;G.resVoid=B.resVoid||0;
   for(const it of Object.values(G.equipped)){
     if(!it)continue;
     for(const[k,v]of Object.entries(it.stats)){const p=STAT_MAP[k];if(p)G[p]+=v;}
   }
   G.hp=Math.min(G.hp,G.maxHp);G.mp=Math.min(G.mp,G.maxMp);
   G.critChance=Math.max(1,Math.min(80,G.critChance));G.spd=Math.max(1,G.spd);G.def=Math.max(0,G.def);
+  G.resFire=Math.min(75,G.resFire||0);G.resIce=Math.min(75,G.resIce||0);G.resVoid=Math.min(75,G.resVoid||0);
 }
 function equipItem(item){
   const G=state.golem;if(!item.slot)return;
@@ -1463,7 +1549,36 @@ function castSpell(def,s,G,cdMult=1){
     spawnFloat(ps.x,ps.y-30,`🩹+${healAmt}`,'#00e676');
     addLog(`🩹 Sacrifice Niv.${s.spellLvl}: +${healAmt} HP`,'log-heal');
     gainSpellXp('sacrifice',3);
+  
+  }else if(def.id==='warcry'){
+    const boost=1.30*(1+(s.spellLvl-1)*.05);
+    const oAtk=G.atkDmg,oDef=G.def,oSpd=G.atkSpd;
+    G.atkDmg=Math.floor(G.atkDmg*boost);G.def=Math.floor(G.def*boost);G.atkSpd*=boost;
+    const pw=ISO.toScreen(G.col,G.row);
+    fxBerserker(8);spawnFloat(pw.x,pw.y-30,'📣 GUERRE!','#ffd700');
+    addLog(`📣 Cri Niv.${s.spellLvl}: +${Math.round((boost-1)*100)}% ATK/DEF/SPD`,'log-spell');
+    setTimeout(()=>{G.atkDmg=oAtk;G.def=oDef;G.atkSpd=oSpd;},8000*(1+(s.spellLvl-1)*.08));
+    gainSpellXp('warcry',3);
+
+  }else if(def.id==='bonespear'&&near.length){
+    // Hits all enemies in order of proximity (piercing line)
+    const gp2=ISO.toScreen(G.col,G.row);
+    addLog(`🦴 Lance d'Os Niv.${s.spellLvl}: ${near.length} cibles!`,'log-spell');
+    let delay=0;
+    for(const e of near){
+      const ep=ISO.toScreen(e.col,e.row);
+      setTimeout(()=>{
+        if(!state.enemies.includes(e))return;
+        const dmg=Math.floor((G.atkDmg+G.str)*effDmg);e.hp-=dmg;e.hitFlash=1;
+        spawnFloat(ep.x,ep.y-18,`🦴${dmg}`,'#e0e0e0');
+        spawnPart(ep.x,ep.y,6,'#bdbdbd',3,.5);
+        if(e.hp<=0)killEnemy(e);
+      },delay);delay+=80;
+    }
+    gainSpellXp('bonespear',near.length+1);
   }
+  // soulharvest is passive — handled in killEnemy
+}
   // ── Multicast echo (50% bonus DMG, no MP cost, slight delay) ─────────
   if(_doMulticast&&state.enemies.length>0){
     setTimeout(()=>{
@@ -1691,8 +1806,9 @@ function updateDots(target,dt,isGolem=false){
       dot.elapsed=0;
       let dmg=dot.dmg;
       if(dot.type==='poison')dmg=Math.floor(dmg*(1+Math.random()*.3));
-      if(dot.type==='burn')  dmg=Math.floor(dmg*(1+Math.random()*.5));
+      if(dot.type==='burn') {dmg=Math.floor(dmg*(1+Math.random()*.5));if(isGolem)dmg=Math.floor(dmg*(1-(target.resFire||0)/100));}
       if(dot.type==='bleed') dmg=Math.floor(dmg*(1+Math.random()*.2));
+      if(dot.type==='void')  {dmg=Math.floor(dmg*(1+Math.random()*.4));if(isGolem)dmg=Math.floor(dmg*(1-(target.resVoid||0)/100));}
       target.hp-=dmg;
       const pos=isGolem?ISO.toScreen(target.col,target.row):ISO.toScreen(target.col,target.row);
       const col=DOT_COLORS[dot.type]||'#fff';
@@ -1822,6 +1938,169 @@ function formatAffixStats(item){
   return item.affixes.map(a=>`<span class="mic-stat pos">${STAT_LABELS[a.stat]||a.stat}: +${a.val} <span style="font-size:9px;opacity:.6">(affix)</span></span>`).join('');
 }
 
+
+// ══ POWER SCORE ═══════════════════════════════════════════════════════
+function calcPowerScore(){
+  const G=state.golem;
+  // Weighted sum of all stats
+  const ps=Math.floor(
+    G.maxHp     * 0.8  +
+    G.maxMp     * 0.5  +
+    G.atkDmg    * 12   +
+    G.str       * 8    +
+    G.int       * 8    +
+    G.def       * 10   +
+    G.spd       * 15   +
+    G.critChance* 20   +
+    G.atkSpd    * 60   +
+    (G.resFire||0)*5   +
+    (G.resIce||0)*5    +
+    (G.resVoid||0)*5   +
+    G.level     * 30   +
+    state.wave  * 10   +
+    // Spell contributions
+    state.activeSpells.filter(s=>s.unlocked).length * 25 +
+    state.activeSpells.reduce((n,s)=>n+(s.spellTier||0)*40,0) +
+    state.activeSpells.reduce((n,s)=>n+Math.floor((s.spellLvl||1)*2),0)
+  );
+  return ps;
+}
+
+
+// ══ CRAFT SYSTEM ══════════════════════════════════════════════════════
+const CRAFT_RARITY_UP={common:'uncommon',uncommon:'rare',rare:'epic',epic:'legendary'};
+let craftSlots=[null,null,null]; // 3 item uids
+
+function getCraftItem(uid){return state.inventory.find(i=>i.uid===uid);}
+
+function craftSlotsValid(){
+  const items=craftSlots.map(uid=>uid?getCraftItem(uid):null);
+  if(items.some(i=>!i))return false;
+  const rar=items[0].rarity;
+  if(!CRAFT_RARITY_UP[rar])return false; // legendary can't upgrade
+  return items.every(i=>i.rarity===rar);
+}
+
+function updateCraftUI(){
+  const valid=craftSlotsValid();
+  for(let i=0;i<3;i++){
+    const el=document.getElementById('cslot-'+i);if(!el)continue;
+    const uid=craftSlots[i];
+    if(uid){
+      const item=getCraftItem(uid);
+      el.textContent=item?item.icon:'?';
+      el.classList.add('filled');
+    } else {
+      el.textContent='＋';el.classList.remove('filled');
+    }
+  }
+  const preview=document.getElementById('craft-result-preview');
+  const goBtn=document.getElementById('craft-go-btn');
+  if(valid){
+    const rar=getCraftItem(craftSlots[0]).rarity;
+    const nextRar=CRAFT_RARITY_UP[rar];
+    const rarColors={uncommon:'var(--c-uncommon)',rare:'var(--c-rare)',epic:'var(--c-epic)',legendary:'var(--c-legendary)'};
+    preview.innerHTML=`<span style="font-size:13px">✨</span><span style="color:${rarColors[nextRar]||'#fff'};font-size:11px;">${nextRar.toUpperCase()}</span>`;
+    preview.classList.add('ready');
+    goBtn.disabled=false;
+  } else {
+    preview.innerHTML='<span style="color:var(--muted);font-size:10px;">3 items requis</span>';
+    preview.classList.remove('ready');
+    goBtn.disabled=true;
+  }
+  // Highlight selected in inventory
+  document.querySelectorAll('.inv-item').forEach(el=>{
+    const idx=+el.dataset.idx;
+    const item=state.inventory[idx];
+    if(item&&craftSlots.includes(item.uid))el.classList.add('craft-selected');
+    else el.classList.remove('craft-selected');
+  });
+}
+
+function toggleCraftItem(uid){
+  const idx=craftSlots.indexOf(uid);
+  if(idx!==-1){craftSlots[idx]=null;}
+  else{
+    const emptySlot=craftSlots.indexOf(null);
+    if(emptySlot===-1){showToastMsg('3 slots déjà remplis!','#ef4444');return;}
+    craftSlots[emptySlot]=uid;
+  }
+  updateCraftUI();
+}
+
+function toggleCraftSlotClick(slotIdx){
+  if(craftSlots[slotIdx]){craftSlots[slotIdx]=null;updateCraftUI();}
+}
+
+function autoCraftSelect(){
+  craftSlots=[null,null,null];
+  // Find 3 items of the same rarity, prefer lowest rarity first (common→legendary)
+  const rarOrder=['common','uncommon','rare','epic'];
+  for(const rar of rarOrder){
+    if(!CRAFT_RARITY_UP[rar])continue;
+    // Get non-equipped, non-scroll items of this rarity
+    const candidates=state.inventory.filter(i=>i.rarity===rar&&!i.spell&&i.slot);
+    if(candidates.length>=3){
+      // Pick the 3 weakest (lowest total stat sum) — sacrifice junk
+      const sorted=candidates.slice().sort((a,b)=>{
+        const sumA=Object.values(a.stats||{}).reduce((s,v)=>s+v,0);
+        const sumB=Object.values(b.stats||{}).reduce((s,v)=>s+v,0);
+        return sumA-sumB;
+      });
+      craftSlots=[sorted[0].uid,sorted[1].uid,sorted[2].uid];
+      updateCraftUI();
+      showToastMsg(`⚡ 3 items ${rar} sélectionnés!`,'#4fc3f7');
+      return;
+    }
+  }
+  showToastMsg('Pas assez d'items de même rareté!','#ef4444');
+}
+
+function doCraft(){
+  if(!craftSlotsValid())return;
+  const items=craftSlots.map(uid=>getCraftItem(uid));
+  const inputRar=items[0].rarity;
+  const outputRar=CRAFT_RARITY_UP[inputRar];
+  // Remove 3 items from inventory
+  craftSlots.forEach(uid=>{
+    const idx=state.inventory.findIndex(i=>i.uid===uid);
+    if(idx!==-1)state.inventory.splice(idx,1);
+  });
+  craftSlots=[null,null,null];
+  // Generate new item of next rarity
+  const pool=ITEMS.filter(i=>i.rarity===outputRar&&i.slot);
+  if(!pool.length){showToastMsg('Aucun item de cette rareté!','#ef4444');return;}
+  const tmpl=pool[Math.floor(Math.random()*pool.length)];
+  const newItem={...tmpl,...generateAffixes(tmpl),uid:Date.now()+Math.random()};
+  // Craft bonus: one extra stat roll
+  if(newItem.affixes&&newItem.affixes.length>0){
+    const bonusAff=AFFIX_POOL[Math.floor(Math.random()*AFFIX_POOL.length)];
+    const range=bonusAff.ranges[outputRar]||[1,2];
+    let val=Math.round((range[0]+Math.random()*(range[1]-range[0]))*10)/10;
+    if(bonusAff.stat!=='spd')val=Math.round(val);
+    newItem.stats[bonusAff.stat]=(newItem.stats[bonusAff.stat]||0)+val;
+    newItem.affixes.push({name:bonusAff.name+' (forge)',stat:bonusAff.stat,val,crafted:true});
+    newItem.name+=' [Forgé]';
+  }
+  if(state.inventory.length<24)state.inventory.push(newItem);
+  addLog(`⚒️ Forgé: ${newItem.name} (${outputRar})!`,'log-spell');
+  showToastMsg(`⚒️ ${newItem.icon} ${newItem.name}\n${outputRar.toUpperCase()} forgé!`,'#ffc107');
+  const G=state.golem;const gp=ISO.toScreen(G.col,G.row);
+  spawnPart(gp.x,gp.y,20,'#ffc107',5,1.2);
+  spawnFloat(gp.x,gp.y-35,'⚒️ FORGÉ!','#ffc107');
+  if(outputRar==='epic'||outputRar==='legendary'){
+    state.lootMarkers.push({x:gp.x,y:gp.y,color:outputRar==='legendary'?'#ffc107':'#ab47bc',icon:newItem.icon,life:10,maxLife:10});
+  }
+  renderInventory();updateUI();updateCraftUI();
+}
+
+// Wire craft buttons after DOM ready (called in init)
+function initCraft(){
+  const autoBtn=document.getElementById('craft-auto-btn');
+  if(autoBtn)autoBtn.addEventListener('click',autoCraftSelect);
+  updateCraftUI();
+}
+
 // ══ HELPERS ═══════════════════════════════════════════════════════════
 function dist(a,b){return Math.sqrt((a.col-b.col)**2+(a.row-b.row)**2);}
 function rnd(a,b){return a+Math.random()*(b-a);}
@@ -1947,6 +2226,13 @@ function killEnemy(enemy){
   // no-hit kill tracking
   if(!state._tookDmgSinceKill){state.noHitKills=(state.noHitKills||0)+1;}
   state._tookDmgSinceKill=false;
+  // Soulharvest passive
+  const sh=getSpellState('soulharvest');
+  if(sh?.unlocked){
+    const maxStacks=100*(1+(sh.spellLvl-1)*.02);
+    if(!G._soulStacks)G._soulStacks=0;
+    if(G._soulStacks<maxStacks){G._soulStacks++;G.atkDmg+=0.02;}
+  }
   state.golem.xp+=enemy.xp;state.golem.gold+=goldDrop;state.totalGoldEarned=(state.totalGoldEarned||0)+goldDrop;
   state.score+=enemy.xp*2;state.totalKills++;
   addLog(`💀 ${enemy.name} +${enemy.xp}XP +${enemy.gold}G`,'log-loot');
@@ -2244,6 +2530,7 @@ function drawGrid(){
   const cam=Math.round(G.col),camR=Math.round(G.row);
   const {hw,hh}=ISO.tilesVisible();
   const tw=ISO.tileW/2,th=ISO.tileH/2;
+  const curBiome=(state&&state.wave)?getBiome(state.wave):BIOMES.forest;
   // Draw a larger range of tiles centered on camera
   for(let dc=-hw;dc<=hw;dc++){
     for(let dr=-hh;dr<=hh;dr++){
@@ -2257,12 +2544,11 @@ function drawGrid(){
       ctx.closePath();
       // Motif de sol varié : utilise modulo pour pattern infini
       const mc=((col%4)+4)%4, mr=((row%4)+4)%4;
-      const bio=getBiome(state.wave);
-      if(mc===1&&mr===1)      ctx.fillStyle=bio.tile.c;
-      else if((col+row)%2===0)ctx.fillStyle=bio.tile.a;
-      else                    ctx.fillStyle=bio.tile.b;
+      if(mc===1&&mr===1)      ctx.fillStyle=curBiome.tile.c;
+      else if((col+row)%2===0)ctx.fillStyle=curBiome.tile.a;
+      else                    ctx.fillStyle=curBiome.tile.b;
       ctx.fill();
-      ctx.strokeStyle=getBiome(state.wave).tile.line;ctx.lineWidth=.5;ctx.stroke();
+      ctx.strokeStyle=curBiome.tile.line;ctx.lineWidth=.5;ctx.stroke();
     }
   }
 }
@@ -2301,7 +2587,17 @@ function updateUI(){
   document.getElementById('bar-xp').style.width=(G.xp/G.xpNext*100)+'%';document.getElementById('val-xp').textContent='LVL '+G.level;
   document.getElementById('gold-val').textContent=G.gold+' G';
   document.getElementById('wave-num').textContent=state.wave;
-  const ssc=document.getElementById('spell-slot-count');if(ssc)ssc.textContent=state.golem.spellSlotsMax||4;document.getElementById('enemy-count').textContent=state.enemies.length;
+  const ssc=document.getElementById('spell-slot-count');if(ssc)ssc.textContent=state.golem.spellSlotsMax||4;
+  // Resistances
+  const G2=state.golem;
+  const rf=document.getElementById('r-fire');if(rf)rf.textContent=(G2.resFire||0)+'%';
+  const ri=document.getElementById('r-ice');if(ri)ri.textContent=(G2.resIce||0)+'%';
+  const rv=document.getElementById('r-void');if(rv)rv.textContent=(G2.resVoid||0)+'%';
+  // Power Score
+  const ps=calcPowerScore();
+  const psel=document.getElementById('power-score-val');if(psel)psel.textContent=ps;
+  const pst=document.getElementById('power-score-tier');
+  if(pst){const tier=ps<500?'Normal':ps<1500?'Fort':ps<4000?'Puissant':ps<10000?'Héroïque':'Divin';const cls='ps-'+tier.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');pst.textContent=tier;pst.className='ps-tier '+cls;}document.getElementById('enemy-count').textContent=state.enemies.length;
   document.getElementById('score-val').textContent=state.score.toLocaleString();
   document.getElementById('s-str').textContent=G.str;document.getElementById('s-int').textContent=G.int;
   document.getElementById('s-spd').textContent=G.spd.toFixed(1);document.getElementById('s-def').textContent=G.def;
@@ -2532,9 +2828,9 @@ function gameLoop(ts){
 
 // ══ SAVE / LOAD ════════════════════════════════════════════════════════
 window.addEventListener('beforeunload',()=>{
-  localStorage.setItem('golemExe7',JSON.stringify({
+  localStorage.setItem('golemExe8',JSON.stringify({
     baseStats:state.golem.baseStats,
-    golem:{hp:state.golem.hp,mp:state.golem.mp,xp:state.golem.xp,xpNext:state.golem.xpNext,level:state.golem.level,gold:state.golem.gold,atkSpd:state.golem.atkSpd,cdReduction:state.golem.cdReduction,mpRegen:state.golem.mpRegen,hpRegen:state.golem.hpRegen,spellSlotsMax:state.golem.spellSlotsMax},
+    golem:{hp:state.golem.hp,mp:state.golem.mp,xp:state.golem.xp,xpNext:state.golem.xpNext,level:state.golem.level,gold:state.golem.gold,atkSpd:state.golem.atkSpd,cdReduction:state.golem.cdReduction,mpRegen:state.golem.mpRegen,hpRegen:state.golem.hpRegen,spellSlotsMax:state.golem.spellSlotsMax,_soulStacks:state.golem._soulStacks||0},
     equipped:state.golem.equipped,equippedSpells:state.golem.equippedSpells,
     upgrades:state.golem.upgrades,
     wave:state.wave,score:state.score,inventory:state.inventory,
@@ -2547,7 +2843,7 @@ window.addEventListener('beforeunload',()=>{
 // ══ INIT ══════════════════════════════════════════════════════════════
 function init(){
   resizeCanvas();initSpells();
-  const sv=localStorage.getItem('golemExe7')||localStorage.getItem('golemExe6')||localStorage.getItem('golemExe5')||localStorage.getItem('golemExe4');
+  const sv=localStorage.getItem('golemExe8')||localStorage.getItem('golemExe7')||localStorage.getItem('golemExe6')||localStorage.getItem('golemExe5')||localStorage.getItem('golemExe4');
   if(sv){try{
     const s=JSON.parse(sv);
     if(s.baseStats)state.golem.baseStats={...s.baseStats};
@@ -2589,8 +2885,8 @@ function init(){
     }
     recalcStats();addLog('💾 Partie chargée!','log-spell');
   }catch(e){console.warn(e);}}
-  renderInventory();renderEquip();renderSpellSlots();renderSpells();renderUpgrades();renderAchievements();updateUI();
-  addLog('⬡ GOLEM.EXE v2.5 — Élites, Affixes, Abysses!','log-spell');
+  renderInventory();renderEquip();renderSpellSlots();renderSpells();renderUpgrades();renderAchievements();updateUI();initCraft();
+  addLog('⬡ GOLEM.EXE v3.0 — Forge, Résistances, Diablo!','log-spell');
   requestAnimationFrame(ts=>{lastTime=ts;gameLoop(ts);});
 }
 init();
