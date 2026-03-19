@@ -133,12 +133,22 @@ function init(){
     try{
       if(s.baseStats) state.golem.baseStats={...state.golem.baseStats,...s.baseStats};
       if(s.golem)     Object.assign(state.golem, s.golem);
-      if(s.equipped)  state.golem.equipped={...s.equipped};
+      if(s.equipped){
+        state.golem.equipped={...s.equipped};
+        // Repair any equipped item missing stats
+        for(const [slot,it] of Object.entries(state.golem.equipped)){
+          if(it&&!it.stats)it.stats={};
+        }
+      }
       if(s.equippedSpells) state.golem.equippedSpells=s.equippedSpells;
       if(s.upgrades)  state.golem.upgrades={...s.upgrades};
       state.wave  = s.wave  || 1;
       state.score = s.score || 0;
-      state.inventory = s.inventory || [];
+      state.inventory = (s.inventory||[]).map(it=>{
+        if(!it.stats)it.stats={};
+        if(!it.affixes)it.affixes=[];
+        return it;
+      });
       // Spell mastery
       if(s.spellMastery){
         for(const m of s.spellMastery){
