@@ -262,7 +262,7 @@ function killEnemy(enemy){
     // Mark loot
     if(elRar==='epic'||elRar==='legendary'){state.lootMarkers.push({x:p.x,y:p.y,color:enemy.eliteColor||'#ab47bc',icon:'✨',life:8,maxLife:8});}
   }
-  if(Math.random()<.033)dropItem(p.x,p.y);
+  if(Math.random()<.011)dropItem(p.x,p.y);
   state.enemies=state.enemies.filter(e=>e!==enemy);
   checkLevelUp();checkAchievements();updateUI();renderUpgrades();
 }

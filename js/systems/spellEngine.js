@@ -108,6 +108,15 @@ function updateSpells(dt){
   }
   // Thorns passif — toujours actif si débloqué (pas de timer)
   const thorns=getSpellState('thorns');// handled in updateEnemies hit section
+  // NecroArmor passive: +50% DEF if HP>50%, +100% DEF if HP<25%
+  const na=getSpellState('necroArmor');
+  if(na?.unlocked){
+    const G2=state.golem;
+    const hpPct=G2.hp/G2.maxHp;
+    const defBoost=hpPct<.25?1.0:hpPct<.50?0.0:0.5;
+    if(!G2._necroArmorBase)G2._necroArmorBase=G2.def;
+    G2.def=Math.floor((G2._necroArmorBase||G2.def)*(1+defBoost));
+  }
   // Bloodpact passive: -5% HP/s, +15% DMG
   const bp=getSpellState('bloodpact');
   if(bp?.unlocked){
@@ -132,7 +141,7 @@ function castSpell(def,s,G,cdMult=1){
   const effCd  = Math.max(1, def.cd * cdMult * (1-(s.cdMastery||0)) * _arcMastery);
   const effMp  = Math.max(0, def.mp - (s.mpMastery||0));
   const effDmg = (def.dmgMult||1) * (s.dmgMastery||1) * (G.spellDmgBonus||1);
-  G.mp=Math.max(0,G.mp-effMp); s.timer=effCd;
+  if(!G._archonActive)G.mp=Math.max(0,G.mp-effMp); s.timer=effCd;
   // Multicast: chance to cast twice (costs no extra MP, 50% bonus dmg on echo)
   const _doMulticast=Math.random()<(G.multicastChance||0);
   // Multicast flag stored for post-cast echo (handled at end of castSpell)
@@ -209,38 +218,45 @@ function castSpell(def,s,G,cdMult=1){
     fxToxicCloud(p2.x,p2.y);
     addLog(`🌫️ Nuage Niv.${s.spellLvl}: poison!`,'log-spell');
     const dur=(def.dotDur||3)*(1+(s.spellLvl-1)*.1);let ticks=0;
-    const iv=setInterval(()=>{ticks++;for(const e of state.enemies){applyDot(e,'poison',dotDmg,2,1);e.hitFlash=.4;}spawnFloat(p2.x,p2.y-20,`☠${dotDmg}`,'#50c850');if(ticks>=Math.ceil(dur))clearInterval(iv);},1000);
+    const toxR=4.5+(s.spellLvl-1)*.1;
+    const iv=setInterval(()=>{ticks++;const toxT=state.enemies.filter(e=>dist(G,e)<toxR);for(const e of toxT){applyDot(e,'poison',dotDmg,2,1);e.hitFlash=.4;}spawnFloat(p2.x,p2.y-20,`☠${dotDmg}`,'#50c850');if(ticks>=Math.ceil(dur))clearInterval(iv);},1000);
     gainSpellXp('toxiccloud',2);
 
   }else if(def.id==='vortex'){
     const p3=ISO.toScreen(G.col,G.row);fxVortex(p3.x,p3.y);
     addLog(`🌀 Vortex Niv.${s.spellLvl}: aspiration!`,'log-spell');
     const pull=0.3+s.spellLvl*.04;
-    for(const e of state.enemies){
+    const vortexR=5.0+(s.spellLvl-1)*.15;
+    const vortexTargets=state.enemies.filter(e=>dist(G,e)<vortexR);
+    for(const e of vortexTargets){
       e.col+=( G.col-e.col)*pull;e.row+=(G.row-e.row)*pull;
       const dmg=Math.floor((G.atkDmg*.4+Math.floor(G.int*.8))*effDmg);e.hp-=dmg;e.hitFlash=1;if(e.hp<=0)killEnemy(e);
     }
-    gainSpellXp('vortex',state.enemies.length);
+    gainSpellXp('vortex',vortexTargets.length);
 
   }else if(def.id==='blizzard'){
     const p4=ISO.toScreen(G.col,G.row);const blizDur=(def.dotDur||4)*(1+(s.spellLvl-1)*.1);
     fxBlizzard(p4.x,p4.y,blizDur);
     const slowAmt=Math.min(.85,.6+(s.spellLvl-1)*.03);
-    for(const e of state.enemies){e.slow=slowAmt;setTimeout(()=>{if(e)e.slow=0;},blizDur*1000);}
+    const blizR=5.5+(s.spellLvl-1)*.15;
+    const blizTargets=state.enemies.filter(e=>dist(G,e)<blizR);
+    for(const e of blizTargets){e.slow=slowAmt;setTimeout(()=>{if(e)e.slow=0;},blizDur*1000);};
     addLog(`🌨️ Blizzard Niv.${s.spellLvl}: −${Math.round(slowAmt*100)}%`,'log-spell');
     const bDmg=Math.floor((G.atkDmg*.4+Math.floor(G.int*1.1))*effDmg);let bt=0;
-    const biv=setInterval(()=>{bt++;for(const e of state.enemies){e.hp-=bDmg;e.hitFlash=.4;if(e.hp<=0)killEnemy(e);}if(bt>=Math.ceil(blizDur))clearInterval(biv);},1000);
-    gainSpellXp('blizzard',state.enemies.length+1);
+    const biv=setInterval(()=>{bt++;const bT=state.enemies.filter(e=>dist(G,e)<blizR);for(const e of bT){e.hp-=bDmg;e.hitFlash=.4;if(e.hp<=0)killEnemy(e);}if(bt>=Math.ceil(blizDur))clearInterval(biv);},1000);
+    gainSpellXp('blizzard',blizTargets.length+1);
 
   }else if(def.id==='quake'){
     const p5=ISO.toScreen(G.col,G.row);fxQuake(p5.x,p5.y);
     addLog(`🌋 Tremblement Niv.${s.spellLvl}: 360°!`,'log-spell');
-    for(const e of state.enemies){
+    const quakeR=6.0+(s.spellLvl-1)*.2;
+    const quakeTargets=state.enemies.filter(e=>dist(G,e)<quakeR);
+    for(const e of quakeTargets){
       const dmg=Math.floor((G.atkDmg+Math.floor(G.str*.9))*effDmg);e.hp-=dmg;e.hitFlash=1;
       spawnFloat(ISO.toScreen(e.col,e.row).x,ISO.toScreen(e.col,e.row).y-15,`🌋${dmg}`,'#c8640a');
       if(e.hp<=0)killEnemy(e);
     }
-    gainSpellXp('quake',state.enemies.length+1);
+    gainSpellXp('quake',quakeTargets.length+1);
 
   }else if(def.id==='arcstorm'){
     const hits=Math.min(state.enemies.length,(def.hits||5)+Math.floor(s.spellLvl/3));
@@ -400,8 +416,93 @@ function castSpell(def,s,G,cdMult=1){
       },si*200);
     }
     gainSpellXp('soulstorm',targets.length+1);
+  }else if(def.id==='hydra'){
+    // 3 fire bolts en rafale
+    const hydraTargets=state.enemies.slice().sort((a,b)=>dist(G,a)-dist(G,b)).slice(0,3);
+    if(!hydraTargets.length){gainSpellXp('hydra',1);return;}
+    addLog(`🐲 Hydre Niv.${s.spellLvl}: 3 jets de feu!`,'log-spell');
+    for(let hi=0;hi<3;hi++){
+      setTimeout(()=>{
+        const tgt=hydraTargets[hi%hydraTargets.length];
+        if(!tgt||!state.enemies.includes(tgt))return;
+        const dmg=Math.floor((G.atkDmg*.3+Math.floor(G.int*2.2))*effDmg);
+        tgt.hp-=dmg;tgt.hitFlash=1;
+        applyDot(tgt,'burn',Math.floor(dmg*.2),3,1);
+        const ep=ISO.toScreen(tgt.col,tgt.row);
+        spawnFloat(ep.x,ep.y-18,`🔥${dmg}`,'#ff6d00');
+        spawnPart(ep.x,ep.y,6,'#ff6d00',3,.5);
+        if(tgt.hp<=0)killEnemy(tgt);
+      },hi*200);
+    }
+    gainSpellXp('hydra',3);
+
+  }else if(def.id==='archon'){
+    // Mode Archonte: ATK×3, sorts gratuits, immunité DoT
+    const oAtk=G.atkDmg,oAtkSpd=G.atkSpd;
+    G.atkDmg=Math.floor(G.atkDmg*3*(1+(s.spellLvl-1)*.05));
+    G.atkSpd*=1.5;
+    G._archonActive=true; // signale immunité DoT et sorts gratuits
+    const ap=ISO.toScreen(G.col,G.row);
+    spawnPart(ap.x,ap.y,30,'#ffe082',6,1.5);
+    spawnFloat(ap.x,ap.y-40,'🌟 ARCHONTE!','#ffe082');
+    addLog(`🌟 Archonte Niv.${s.spellLvl}: ATK×3 pendant 10s!`,'log-spell');
+    const archDur=10000*(1+(s.spellLvl-1)*.08);
+    setTimeout(()=>{G.atkDmg=oAtk;G.atkSpd=oAtkSpd;G._archonActive=false;addLog('🌟 Archonte terminé','log-spell');},archDur);
+    gainSpellXp('archon',5);
+
+  }else if(def.id==='chainHook'&&state.enemies.length){
+    // Attire 3 ennemis au corps-à-corps
+    const hookTargets=state.enemies.slice().sort(()=>Math.random()-.5).slice(0,3+Math.floor(s.spellLvl/4));
+    for(const t of hookTargets){
+      const dmg=Math.floor((G.atkDmg+G.str)*effDmg);
+      t.hp-=dmg;t.hitFlash=1;
+      // Pull towards golem
+      t.col=G.col+(Math.random()-.5)*2;
+      t.row=G.row+(Math.random()-.5)*2;
+      const ep=ISO.toScreen(t.col,t.row);
+      spawnFloat(ep.x,ep.y-18,`⛓️${dmg}`,'#bdbdbd');
+      if(t.hp<=0)killEnemy(t);
+    }
+    const gp=ISO.toScreen(G.col,G.row);
+    spawnPart(gp.x,gp.y,12,'#bdbdbd',3,.6);
+    addLog(`⛓️ Crochet Niv.${s.spellLvl}: ${hookTargets.length} ennemis attirés!`,'log-spell');
+    gainSpellXp('chainHook',hookTargets.length);
+
+  }else if(def.id==='starPact'){
+    // Active un compteur d'étoiles sur les kills suivants (5s)
+    G._starPactActive=true;G._starPactKills=0;G._starPactMult=effDmg;
+    const sp2=ISO.toScreen(G.col,G.row);
+    spawnPart(sp2.x,sp2.y,20,'#fff9c4',5,1.2);
+    spawnFloat(sp2.x,sp2.y-35,'⭐ PACTE!','#fff9c4');
+    addLog(`⭐ Pacte Stellaire Niv.${s.spellLvl}: prêt!`,'log-spell');
+    setTimeout(()=>{
+      if(G._starPactKills>0){
+        const starDmg=Math.floor(G.int*5.0*G._starPactMult*G._starPactKills);
+        for(const e of state.enemies.slice(0,G._starPactKills)){
+          if(!state.enemies.includes(e))continue;
+          e.hp-=starDmg;e.hitFlash=1;
+          const ep=ISO.toScreen(e.col,e.row);
+          spawnFloat(ep.x,ep.y-25,`⭐${starDmg}`,'#fff9c4');
+          if(e.hp<=0)killEnemy(e);
+        }
+        addLog(`⭐ ${G._starPactKills} étoiles → ${starDmg} DMG!`,'log-spell');
+      }
+      G._starPactActive=false;G._starPactKills=0;
+    },5000*(1+(s.spellLvl-1)*.1));
+    gainSpellXp('starPact',3);
+
+  }else if(def.id==='wraithForm'){
+    // Intangible: immunité totale + vitesse×2
+    G._wraithFormActive=true;
+    const origSpd2=G.spd;G.spd*=2;
+    const wp=ISO.toScreen(G.col,G.row);
+    spawnPart(wp.x,wp.y,25,'#9e9e9e',4,1);
+    spawnFloat(wp.x,wp.y-35,'👁️ SPECTRE!','#bdbdbd');
+    addLog(`👁️ Forme Spectre Niv.${s.spellLvl}: intangible 6s!`,'log-spell');
+    const wDur=6000*(1+(s.spellLvl-1)*.08);
+    setTimeout(()=>{G._wraithFormActive=false;G.spd=origSpd2;addLog('👁️ Forme Spectre terminée','log-spell');},wDur);
+    gainSpellXp('wraithForm',3);
   }
-  // bloodpact is passive — handled in updateGolem
 
   // soulharvest is passive — handled in killEnemy
 
