@@ -172,21 +172,21 @@ function getLootWeights(wave){
 }
 const RW={common:45,uncommon:30,rare:17,epic:6,legendary:2}; // kept for reference
 const ETYPES={
-  grunt: {hp:30,dmg:5, spd:.9, range:1.2,xp:15,gold:3,threat:1,name:'Grunt',     draw:(cx,x,y,e)=>drawGrunt(cx,x,y,e)},
-  slime: {hp:20,dmg:3, spd:1.1,range:1.0,xp:10,gold:2,threat:1,name:'Slime',     draw:(cx,x,y,e)=>drawSlime(cx,x,y,e)},
-  archer:{hp:25,dmg:8, spd:.7, range:3.5,xp:20,gold:4,threat:2,name:'Archer',draw:(cx,x,y,e)=>drawArcher(cx,x,y,e)},
-  brute: {hp:80,dmg:14,spd:.55,range:1.5,xp:40,gold:8,threat:3,name:'Brute', draw:(cx,x,y,e)=>drawBrute(cx,x,y,e)},
-  wraith:   {hp:45,dmg:10,spd:1.3,range:1.2,xp:35,gold:7, threat:2,name:'Spectre',  draw:(cx,x,y,e)=>drawWraith(cx,x,y,e)},
+  grunt: {hp:30,dmg:5, spd:.9, range:1.2,xp:15,gold:3,threat:1,name:'Grunt',     draw:drawGrunt},
+  slime: {hp:20,dmg:3, spd:1.1,range:1.0,xp:10,gold:2,threat:1,name:'Slime',     draw:drawSlime},
+  archer:{hp:25,dmg:8, spd:.7, range:3.5,xp:20,gold:4,threat:2,name:'Archer',draw:drawArcher},
+  brute: {hp:80,dmg:14,spd:.55,range:1.5,xp:40,gold:8,threat:3,name:'Brute', draw:drawBrute},
+  wraith:   {hp:45,dmg:10,spd:1.3,range:1.2,xp:35,gold:7, threat:2,name:'Spectre',  draw:drawWraith},
   // ── Biome Abyssal ──
-  frostshade:      {hp:55, dmg:12,spd:1.4,range:1.2,xp:50,gold:11,threat:2,name:'Spectre Givré', draw:(cx,x,y,e)=>drawFrostShade(cx,x,y,e),    dotOnHit:{type:'void',dmg:4,dur:3}, slowOnHitVal:.3},
-  abyssalbehemoth: {hp:200,dmg:30,spd:.45,range:1.6,xp:100,gold:25,threat:5,name:'Béhémoth Abyssal',draw:(cx,x,y,e)=>drawAbyssalBehemoth(cx,x,y,e),dotOnHit:{type:'void',dmg:10,dur:5}},
-  voidarcher:      {hp:40, dmg:20,spd:.7, range:4.5,xp:60,gold:14,threat:3,name:'Archer du Vide',  draw:(cx,x,y,e)=>drawVoidArcher(cx,x,y,e),    dotOnHit:{type:'void',dmg:7,dur:4}},
-  glacialgolem:    {hp:150,dmg:22,spd:.5, range:1.5,xp:80,gold:20,threat:4,name:'Golem Glacial',   draw:(cx,x,y,e)=>drawGlacialGolem(cx,x,y,e),  slowOnHitVal:.4},
+  frostshade:      {hp:55, dmg:12,spd:1.4,range:1.2,xp:50,gold:11,threat:2,name:'Spectre Givré', draw:drawFrostShade,    dotOnHit:{type:'void',dmg:4,dur:3}, slowOnHitVal:.3},
+  abyssalbehemoth: {hp:200,dmg:30,spd:.45,range:1.6,xp:100,gold:25,threat:5,name:'Béhémoth Abyssal',draw:drawAbyssalBehemoth,dotOnHit:{type:'void',dmg:10,dur:5}},
+  voidarcher:      {hp:40, dmg:20,spd:.7, range:4.5,xp:60,gold:14,threat:3,name:'Archer du Vide',  draw:drawVoidArcher,    dotOnHit:{type:'void',dmg:7,dur:4}},
+  glacialgolem:    {hp:150,dmg:22,spd:.5, range:1.5,xp:80,gold:20,threat:4,name:'Golem Glacial',   draw:drawGlacialGolem,  slowOnHitVal:.4},
   // ── Biome Volcanique ──
-  lavabrute:{hp:120,dmg:22,spd:.5, range:1.6,xp:65,gold:15,threat:4,name:'Brute de Lave',draw:(cx,x,y,e)=>drawLavaBrute(cx,x,y,e), dotOnHit:{type:'burn',dmg:4,dur:3}},
-  ember:    {hp:25, dmg:12,spd:1.5,range:1.0,xp:30,gold:8, threat:2,name:'Tison',        draw:(cx,x,y,e)=>drawEmber(cx,x,y,e),     dotOnHit:{type:'burn',dmg:3,dur:2}},
-  ashwraith:{hp:60, dmg:15,spd:1.2,range:1.3,xp:55,gold:12,threat:3,name:'Spectre Cendre',draw:(cx,x,y,e)=>drawAshWraith(cx,x,y,e),dotOnHit:{type:'burn',dmg:5,dur:4}},
-  scorcher: {hp:35, dmg:18,spd:.75, range:4.0,xp:45,gold:10,threat:2,name:'Carboniseur',  draw:(cx,x,y,e)=>drawScorcher(cx,x,y,e),  dotOnHit:{type:'burn',dmg:6,dur:3}},
+  lavabrute:{hp:120,dmg:22,spd:.5, range:1.6,xp:65,gold:15,threat:4,name:'Brute de Lave',draw:drawLavaBrute, dotOnHit:{type:'burn',dmg:4,dur:3}},
+  ember:    {hp:25, dmg:12,spd:1.5,range:1.0,xp:30,gold:8, threat:2,name:'Tison',        draw:drawEmber,     dotOnHit:{type:'burn',dmg:3,dur:2}},
+  ashwraith:{hp:60, dmg:15,spd:1.2,range:1.3,xp:55,gold:12,threat:3,name:'Spectre Cendre',draw:drawAshWraith,dotOnHit:{type:'burn',dmg:5,dur:4}},
+  scorcher: {hp:35, dmg:18,spd:.75, range:4.0,xp:45,gold:10,threat:2,name:'Carboniseur',  draw:drawScorcher,  dotOnHit:{type:'burn',dmg:6,dur:3}},
 };
 const STAT_MAP={str:'str',int:'int',spd:'spd',def:'def',atk:'atkDmg',crit:'critChance',hp:'maxHp',mp:'maxMp',rfire:'resFire',rice:'resIce',rvoid:'resVoid'};
 const STAT_LABELS={str:'STR',int:'INT',spd:'SPD',def:'DEF',atk:'ATK',crit:'CRIT',hp:'HP MAX',mp:'MP MAX',rfire:'Rés. Feu',rice:'Rés. Glace',rvoid:'Rés. Vide'};
