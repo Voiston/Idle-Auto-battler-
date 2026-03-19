@@ -1,5 +1,6 @@
 // ══ CRAFT SYSTEM ══════════════════════════════════════════════════════
 const CRAFT_RARITY_UP={common:'uncommon',uncommon:'rare',rare:'epic',epic:'legendary'};
+const CRAFT_GOLD_COST={common:50,uncommon:200,rare:800,epic:3000};
 let craftSlots=[null,null,null]; // 3 item uids
 
 function getCraftItem(uid){return state.inventory.find(i=>i.uid===uid);}
@@ -31,7 +32,8 @@ function updateCraftUI(){
     const rar=getCraftItem(craftSlots[0]).rarity;
     const nextRar=CRAFT_RARITY_UP[rar];
     const rarColors={uncommon:'var(--c-uncommon)',rare:'var(--c-rare)',epic:'var(--c-epic)',legendary:'var(--c-legendary)'};
-    preview.innerHTML=`<span style="font-size:13px">✨</span><span style="color:${rarColors[nextRar]||'#fff'};font-size:11px;">${nextRar.toUpperCase()}</span>`;
+    const craftCost=CRAFT_GOLD_COST[rar]||50;
+    preview.innerHTML=`<span style="font-size:13px">✨</span><span style="color:${rarColors[nextRar]||'#fff'};font-size:11px;">${nextRar.toUpperCase()}</span><span style="font-size:9px;color:var(--gold);margin-left:6px">⬡${craftCost}G</span>`;
     preview.classList.add('ready');
     goBtn.disabled=false;
   } else {
@@ -91,6 +93,9 @@ function doCraft(){
   if(!craftSlotsValid())return;
   const items=craftSlots.map(uid=>getCraftItem(uid));
   const inputRar=items[0].rarity;
+  const craftCost2=CRAFT_GOLD_COST[inputRar]||50;
+  if(state.golem.gold<craftCost2){showToastMsg('Or insuffisant! ('+craftCost2+' G requis)','#ef4444');return;}
+  state.golem.gold-=craftCost2;
   const outputRar=CRAFT_RARITY_UP[inputRar];
   // Remove 3 items from inventory
   craftSlots.forEach(uid=>{
