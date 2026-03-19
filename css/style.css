@@ -8,7 +8,7 @@
       --glow:0 0 14px rgba(79,195,247,.45);--glow-gold:0 0 12px rgba(255,193,7,.4);
       --c-common:#9e9e9e;--c-uncommon:#66bb6a;--c-rare:#42a5f5;--c-epic:#ab47bc;--c-legendary:#ffc107;
       --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
-      --hud-h:52px;--strips-h:90px;--handle-h:36px;
+      --hud-h:52px;--strips-h:78px;--handle-h:40px;
     }
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
     html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;touch-action:none;}
@@ -121,25 +121,30 @@
       background:linear-gradient(180deg,#0d1020 0%,#0b0e1a 100%);
       border-top:1px solid var(--border2);
       display:flex;align-items:center;justify-content:space-between;
-      padding:0 12px;cursor:pointer;user-select:none;
+      padding:0 6px 0 0;cursor:pointer;user-select:none;
     }
     #drawer-handle:active{background:rgba(0,212,255,.04);}
-    #handle-tabs{display:flex;height:100%;}
+    #handle-tabs{display:flex;height:100%;overflow-x:auto;flex:1;scrollbar-width:none;}
+    #handle-tabs::-webkit-scrollbar{display:none;}
     .htab{
-      padding:0 10px;height:100%;display:flex;align-items:center;
-      font-size:11px;letter-spacing:1px;color:var(--muted);
+      padding:0 7px;height:100%;display:flex;align-items:center;
+      font-size:9px;letter-spacing:.5px;color:var(--muted);
       border-bottom:2px solid transparent;cursor:pointer;
-      transition:color .15s,border-color .15s;gap:4px;
+      transition:color .15s,border-color .15s;gap:3px;
+      white-space:nowrap;flex-shrink:0;
     }
-    .htab .htab-icon{font-size:14px;}
+    .htab .htab-icon{font-size:13px;}
     .htab.active{color:var(--accent);border-bottom-color:var(--accent);}
     .htab:not(.active):hover{color:var(--text);}
     #handle-toggle{
-      font-size:12px;color:var(--muted);transition:transform .35s;
-      width:26px;height:26px;display:flex;align-items:center;justify-content:center;
-      border:1px solid var(--border2);border-radius:6px;
-      background:rgba(255,255,255,.04);
+      font-size:14px;color:var(--accent);transition:transform .35s;
+      width:36px;height:36px;min-width:36px;display:flex;align-items:center;justify-content:center;
+      border:1px solid var(--accent);border-radius:8px;
+      background:rgba(79,195,247,.08);
+      box-shadow:0 0 8px rgba(79,195,247,.15);
+      flex-shrink:0;
     }
+    #handle-toggle:active{background:rgba(79,195,247,.2);}
     #drawer-wrap:not(.collapsed) #handle-toggle{transform:rotate(180deg);}
 
     /* ── DRAWER ── */
