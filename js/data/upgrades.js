@@ -22,4 +22,5 @@ const UPG_DEFS=[
   {id:'spd_up',   name:'Legerete',          icon:'💨',branch:'survival', maxLvl:80, costBase:45, desc:'+0.5 SPD/niv',        effect:(G)=>{G.baseStats.spd+=.5;}},
   {id:'tenacity', name:'Tenacite',          icon:'🦾',branch:'survival', maxLvl:50, costBase:90, desc:'+2% reduction degats', effect:(G)=>{G.dmgReduction=(G.dmgReduction||0)+.02;}},
   {id:'comeback', name:'Deuxieme Souffle',  icon:'💫',branch:'survival', maxLvl:50, costBase:150,desc:'+15% HP resurrection', effect:(G)=>{G.reviveBonus=(G.reviveBonus||.5)+.15;}},
+  {id:'inv_up',   name:'Sacoche',           icon:'🎒',branch:'survival', maxLvl:40, costBase:80, desc:'+2 slots inventaire',   effect:(G)=>{G.invMaxSlots=(G.invMaxSlots||24)+2;}},
 ];
