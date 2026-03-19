@@ -154,9 +154,10 @@ function initEventListeners(){
   document.getElementById('handle-toggle').addEventListener('click',toggleDrawer);
   let tsy=0;document.getElementById('drawer-handle').addEventListener('touchstart',e=>{tsy=e.touches[0].clientY;},{passive:true});
   document.getElementById('drawer-handle').addEventListener('touchend',e=>{const dy=e.changedTouches[0].clientY-tsy;if(dy>30&&!drawerCollapsed)toggleDrawer();else if(dy<-30&&drawerCollapsed)toggleDrawer();},{passive:true});
-  document.getElementById('sell-all-btn').addEventListener('click',()=>{
+  document.getElementById('sell-all-btn').addEventListener('click',()=>{sellByRarity('rare');});
+  document.querySelectorAll('.sell-rarity-btn[data-rarity]').forEach(btn=>{btn.addEventListener('click',()=>sellByRarity(btn.dataset.rarity));});
+  modalOverlay.addEventListener('click',e=>{if(e.target===modalOverlay)closeModal();});
 }
-modalOverlay.addEventListener('click',e=>{if(e.target===modalOverlay)closeModal();});
 
 function rarityGoldVal(r){return{common:2,uncommon:5,rare:12,epic:30,legendary:80}[r]||2;}
 
@@ -261,9 +262,3 @@ function sellByRarity(maxRarity){
   addLog(`💰 ${sold.length} items vendus → +${gold} G`,'log-loot');
   renderInventory();updateUI();renderUpgrades();
 }
-document.querySelectorAll('.sell-rarity-btn[data-rarity]').forEach(btn=>{
-  btn.addEventListener('click',()=>sellByRarity(btn.dataset.rarity));
-});
-  // Sell everything non-equipped, non-scroll (ie everything common+uncommon+rare)
-  sellByRarity('rare');
-});

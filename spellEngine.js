@@ -404,7 +404,7 @@ function castSpell(def,s,G,cdMult=1){
   // bloodpact is passive — handled in updateGolem
 
   // soulharvest is passive — handled in killEnemy
-}
+
   // ── Multicast echo (50% bonus DMG, no MP cost, slight delay) ─────────
   if(_doMulticast&&state.enemies.length>0){
     setTimeout(()=>{
@@ -412,7 +412,7 @@ function castSpell(def,s,G,cdMult=1){
       const echoDef={...def,dmgMult:(def.dmgMult||1)*.5,dotDur:(def.dotDur||3)*.5};
       const echoS={...s,timer:0,mpMastery:999}; // no MP on echo
       addLog(`🔁 ECHO: ${def.name}!`,'log-spell');
-      castSpell(echoDef,echoS,G,1);
+      castSpell(echoDef,echoS,G,near);
     },400);
   }
 }
