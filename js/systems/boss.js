@@ -1,10 +1,10 @@
 // ══ BOSS SYSTEM ═══════════════════════════════════════════════════════
 const BOSS_DEFS=[
-  {name:'Gardien Corrompu',  icon:'👹',color:'#c62828',hp:600, dmg:25,spd:.6, xp:200,gold:80, draw:drawBrute},
-  {name:'Archonte des Glaces',icon:'❄️',color:'#1565c0',hp:900, dmg:20,spd:.8, xp:300,gold:120,draw:drawWraith},
-  {name:'Titan Infernal',    icon:'🌋',color:'#bf360c',hp:1500,dmg:35,spd:.5, xp:500,gold:200,draw:drawBrute},
-  {name:'Hydre Venimeuse',   icon:'🐉',color:'#1b5e20',hp:2200,dmg:30,spd:.7, xp:800,gold:350,draw:drawBrute},
-  {name:'Seigneur du Néant', icon:'💀',color:'#4a148c',hp:3500,dmg:50,spd:.55,xp:1500,gold:600,draw:drawWraith},
+  {name:'Gardien Corrompu',  icon:'👹',color:'#c62828',hp:600, dmg:25,spd:.6, xp:200,gold:80, draw:(cx,x,y,e)=>drawBrute(cx,x,y,e)},
+  {name:'Archonte des Glaces',icon:'❄️',color:'#1565c0',hp:900, dmg:20,spd:.8, xp:300,gold:120,draw:(cx,x,y,e)=>drawWraith(cx,x,y,e)},
+  {name:'Titan Infernal',    icon:'🌋',color:'#bf360c',hp:1500,dmg:35,spd:.5, xp:500,gold:200,draw:(cx,x,y,e)=>drawBrute(cx,x,y,e)},
+  {name:'Hydre Venimeuse',   icon:'🐉',color:'#1b5e20',hp:2200,dmg:30,spd:.7, xp:800,gold:350,draw:(cx,x,y,e)=>drawBrute(cx,x,y,e)},
+  {name:'Seigneur du Néant', icon:'💀',color:'#4a148c',hp:3500,dmg:50,spd:.55,xp:1500,gold:600,draw:(cx,x,y,e)=>drawWraith(cx,x,y,e)},
 ];
 
 function isBossWave(wave){return wave>0&&wave%5===0;}
@@ -21,7 +21,7 @@ function spawnBoss(wave){
     xp:Math.floor(def.xp*sc),gold:Math.floor(def.gold*sc),threat:5,
     name:def.name,color:def.color,
     atkTimer:2,hitFlash:0,animTimer:0,animFrame:0,
-    draw:drawBoss,facing:1,slow:0,
+    draw:(cx,x,y,e)=>drawBoss(cx,x,y,e),facing:1,slow:0,
     inRage:false,rageTriggered:false,
     bossIcon:def.icon,
   };
