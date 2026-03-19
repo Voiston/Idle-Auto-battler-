@@ -199,6 +199,17 @@ function killEnemy(enemy){
     if(!G._soulStacks)G._soulStacks=0;
     if(G._soulStacks<maxStacks){G._soulStacks++;G.atkDmg+=0.02;}
   }
+  // Void Set 3p: kill buff +1% DMG 30s (max 50%)
+  if(state.golem._setVoidKillBuff){
+    const G=state.golem;
+    if(!G._voidKillBonusPct)G._voidKillBonusPct=0;
+    if(G._voidKillBonusPct<0.50){
+      G._voidKillBonusPct=Math.min(0.50,(G._voidKillBonusPct||0)+0.01);
+      G.atkDmg=Math.floor(G.atkDmg*1.01);
+      clearTimeout(G._voidKillTimer);
+      G._voidKillTimer=setTimeout(()=>{G._voidKillBonusPct=0;recalcStats();},30000);
+    }
+  }
   state.golem.xp+=enemy.xp;state.golem.gold+=goldDrop;state.totalGoldEarned=(state.totalGoldEarned||0)+goldDrop;
   state.score+=enemy.xp*2;state.totalKills++;
   addLog(`💀 ${enemy.name} +${enemy.xp}XP +${enemy.gold}G`,'log-loot');
