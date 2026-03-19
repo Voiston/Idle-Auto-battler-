@@ -91,7 +91,18 @@ function renderInventory(){
   const grid=document.getElementById('inv-grid');
   document.getElementById('inv-count').textContent=state.inventory.length;
   let html='';
-  for(let i=0;i<24;i++){const item=state.inventory[i];if(item)html+=`<div class="inv-item ${item.rarity}${item.affixes&&item.affixes.length?' has-affixes':''}" data-idx="${i}" title="${item.name}">${item.icon}${item.affixes&&item.affixes.length>0?'<div class="affix-dot"></div>':''}${item.setId&&typeof SET_DEFS!=='undefined'&&SET_DEFS[item.setId]?`<div class="set-dot" style="background:${SET_DEFS[item.setId].color};box-shadow:0 0 4px ${SET_DEFS[item.setId].color}"></div>`:''}<div class="rarity-dot"></div></div>`;else html+='<div class="inv-item"></div>';}
+  for(let i=0;i<24;i++){
+    const item=state.inventory[i];
+    if(item){
+      const affixDot = item.affixes&&item.affixes.length>0 ? '<div class="affix-dot"></div>' : '';
+      const setDef   = item.setId&&typeof SET_DEFS!=='undefined' ? SET_DEFS[item.setId] : null;
+      const setDot   = setDef ? '<div class="set-dot" style="background:'+setDef.color+';box-shadow:0 0 4px '+setDef.color+'"></div>' : '';
+      const cls      = 'inv-item '+item.rarity+(item.affixes&&item.affixes.length?' has-affixes':'');
+      html += '<div class="'+cls+'" data-idx="'+i+'" title="'+item.name+'">'+item.icon+affixDot+setDot+'<div class="rarity-dot"></div></div>';
+    } else {
+      html += '<div class="inv-item"></div>';
+    }
+  }
   grid.innerHTML=html;
   grid.querySelectorAll('.inv-item[data-idx]').forEach(el=>{const item=state.inventory[+el.dataset.idx];if(!item)return;el.addEventListener('click',()=>openItemModal(item));});
 }
