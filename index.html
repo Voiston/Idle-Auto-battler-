@@ -152,33 +152,39 @@
 </div>
 <div id="item-toast"><div class="tt-name" id="tt-name"></div><div id="tt-stats"></div><div class="tt-rarity" id="tt-rarity"></div></div>
 
-  <!-- Data -->
+
+  <!-- Data (no dependencies) -->
   <script src="js/data/biomes.js"></script>
   <script src="js/data/upgrades.js"></script>
   <script src="js/data/items.js"></script>
 
-  <!-- State -->
+  <!-- Core state (canvas globals, state object) -->
   <script src="js/systems/state.js"></script>
 
-  <!-- Render (FX needed early for draw functions) -->
+  <!-- Render: FX + Canvas (ISO, C, drawXxx, resizeCanvas) -->
   <script src="js/render/fx.js"></script>
   <script src="js/render/canvas.js"></script>
 
-  <!-- Systems -->
+  <!-- UI must load early: showToastMsg, openModal, renderInventory used by systems -->
+  <script src="js/render/ui.js"></script>
+
+  <!-- Combat helpers: dist, rnd, spawnPart, spawnFloat, addLog, killEnemy, applyDot -->
+  <!-- Must load before spellEngine, boss, equipment -->
+  <script src="js/systems/combat.js"></script>
+
+  <!-- Loot: generateAffixes, dropItem — before boss.js and spellEngine.js -->
+  <script src="js/systems/loot.js"></script>
+
+  <!-- Systems that depend on combat + loot + ui -->
   <script src="js/systems/equipment.js"></script>
   <script src="js/systems/spellEngine.js"></script>
   <script src="js/systems/achievements.js"></script>
   <script src="js/systems/boss.js"></script>
-  <script src="js/systems/combat.js"></script>
-  <script src="js/systems/loot.js"></script>
   <script src="js/systems/powerScore.js"></script>
   <script src="js/systems/craft.js"></script>
   <script src="js/systems/upgradeEngine.js"></script>
 
-  <!-- Render UI -->
-  <script src="js/render/ui.js"></script>
-
-  <!-- Core -->
+  <!-- Core game loop -->
   <script src="js/core/wave.js"></script>
   <script src="js/core/gameloop.js"></script>
 

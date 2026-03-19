@@ -1,3 +1,43 @@
+// ── ISO (isometric coordinate system, camera centred on Golem) ───────
+const ISO = {
+  tileW: 44, tileH: 22,
+  get camCol(){ return state?.golem?.col || 8; },
+  get camRow(){ return state?.golem?.row || 8; },
+  toScreen(c, r){
+    if(!canvas) return {x:0, y:0};
+    const cx = canvas.width / 2, cy = canvas.height * .42;
+    return {
+      x: cx + (c - this.camCol - (r - this.camRow)) * this.tileW / 2,
+      y: cy + (c - this.camCol + (r - this.camRow)) * this.tileH / 2,
+    };
+  },
+  tilesVisible(){
+    if(!canvas) return {hw:10, hh:10};
+    const hw = Math.ceil(canvas.width  / this.tileW) + 4;
+    const hh = Math.ceil(canvas.height / this.tileH) + 4;
+    return {hw, hh};
+  },
+};
+
+// ── Color palette ─────────────────────────────────────────────────────
+const C = {
+  golem:  {body:'#4a7aff', core:'#00e5ff', joint:'#1a3a8f'},
+  grunt:  {body:'#c0392b', eye:'#ff6b35'},
+  brute:  {body:'#7d3c98', eye:'#e74c3c'},
+  slime:  {body:'#27ae60', eye:'#a9dfbf'},
+  archer: {body:'#e67e22', eye:'#f39c12'},
+  wraith: {body:'#2c3e50', eye:'#9b59b6'},
+  tile:   {a:'#0a1a30', b:'#0d1f38', c:'#0b1c35', line:'#152535'},
+};
+
+// ── Canvas resize ─────────────────────────────────────────────────────
+function resizeCanvas(){
+  if(!canvas || !cZone) return;
+  canvas.width  = cZone.clientWidth;
+  canvas.height = cZone.clientHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+
 // ══ DRAW ══════════════════════════════════════════════════════════════
 function drawShadow(x,y,r=14){ctx.save();ctx.globalAlpha=.28;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(x,y+3,r,r*.4,0,0,Math.PI*2);ctx.fill();ctx.restore();}
 function drawHpBar(x,y,hp,max,w=28,eliteColor=null){
