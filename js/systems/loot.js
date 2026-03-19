@@ -15,12 +15,18 @@ const AFFIX_POOL=[
 // Nombre d'affixes par rareté
 const AFFIX_COUNT={common:0,uncommon:1,rare:2,epic:3,legendary:4};
 
-function generateAffixes(tmpl){
+function generateAffixes(tmpl,ilvl){
+  ilvl=ilvl||1;
   const n=AFFIX_COUNT[tmpl.rarity]||0;
   if(n===0)return{affixes:[],stats:{...tmpl.stats}};
   // Pick n random unique affixes
   const pool=[...AFFIX_POOL].sort(()=>Math.random()-.5).slice(0,n);
-  const newStats={...tmpl.stats};
+  // Scale base stats by item level: +5% per ilvl
+  const ilvlMult = 1 + (ilvl-1) * 0.05;
+  const newStats={};
+  for(const [k,v] of Object.entries(tmpl.stats||{})){
+    newStats[k] = k==='spd' ? Math.round(v*ilvlMult*10)/10 : Math.round(v*ilvlMult);
+  }
   const affixes=[];
   for(const aff of pool){
     const range=aff.ranges[tmpl.rarity]||[1,2];
@@ -43,7 +49,8 @@ function formatAffixStats(item){
 
 
 
-function dropItem(x,y){
+function dropItem(x,y,ilvl){
+  ilvl=ilvl||state.wave||1;
   const weights=getLootWeights(state.wave);
   const total=Object.values(weights).reduce((a,b)=>a+b,0);
   let roll=Math.random()*total,rar='common';
@@ -51,7 +58,7 @@ function dropItem(x,y){
   const pool=ITEMS.filter(i=>i.rarity===rar);if(!pool.length)return;
   const tmpl=pool[Math.floor(Math.random()*pool.length)];
   if(state.inventory.length<24){
-    const itemWithAffixes={...tmpl,...generateAffixes(tmpl),uid:Date.now()+Math.random()};
+    const itemWithAffixes={...tmpl,...generateAffixes(tmpl,ilvl),uid:Date.now()+Math.random(),ilvl:ilvl};
     state.inventory.push(itemWithAffixes);
     addLog(`📦 ${tmpl.name} (${rar})`,'log-loot');
     spawnFloat(x,y-20,tmpl.icon,'#ffd700');

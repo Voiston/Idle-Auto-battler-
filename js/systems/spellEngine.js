@@ -150,7 +150,7 @@ function castSpell(def,s,G,cdMult=1){
 
   if(def.id==='slam'&&near[0]){
     const ep=ISO.toScreen(near[0].col,near[0].row);
-    const dmg=Math.floor((G.atkDmg+Math.floor(G.str*.9))*effDmg); near[0].hp-=dmg; near[0].hitFlash=1;
+    const dmg=Math.floor((G.atkDmg+Math.floor(G.str*.9))*effDmg); near[0].hp-=dmg; near[0].hitFlash=1;trackDmg(dmg,'slam');
     fxShockwave(ep.x,ep.y);
     spawnFloat(ep.x,ep.y-24,`💥${dmg}`,'#ff6b35');
     addLog(`💥 Séisme Niv.${s.spellLvl}: ${dmg}`,'log-spell');
@@ -180,7 +180,7 @@ function castSpell(def,s,G,cdMult=1){
     const pts=[p,...tgts.map(t=>ISO.toScreen(t.col,t.row))];
     fxChain(pts);
     for(const t of tgts){
-      const dmg=Math.floor((G.atkDmg*.6+Math.floor(G.int*1.2))*effDmg); t.hp-=dmg; t.hitFlash=1;
+      const dmg=Math.floor((G.atkDmg*.6+Math.floor(G.int*1.2))*effDmg); t.hp-=dmg; t.hitFlash=1;trackDmg(dmg,'chain');
       spawnFloat(ISO.toScreen(t.col,t.row).x,ISO.toScreen(t.col,t.row).y-15,`⚡${dmg}`,'#ffd700');
       if(t.hp<=0)killEnemy(t);
     }
@@ -205,7 +205,7 @@ function castSpell(def,s,G,cdMult=1){
       const tCol=near[0].col, tRow=near[0].row;
       const aoe=state.enemies.filter(e=>dist({col:tCol,row:tRow},e)<aoeRadius);
       for(const e of aoe){
-        const dmg=Math.floor((G.atkDmg*.5+Math.floor(G.int*1.5))*effDmg); e.hp-=dmg; e.hitFlash=1;
+        const dmg=Math.floor((G.atkDmg*.5+Math.floor(G.int*1.5))*effDmg); e.hp-=dmg; e.hitFlash=1;trackDmg(dmg,'meteor');
         spawnFloat(ISO.toScreen(e.col,e.row).x,ISO.toScreen(e.col,e.row).y-15,`☄️${dmg}`,'#ff4500');
         if(e.hp<=0)killEnemy(e);
       }
@@ -230,7 +230,7 @@ function castSpell(def,s,G,cdMult=1){
     const vortexTargets=state.enemies.filter(e=>dist(G,e)<vortexR);
     for(const e of vortexTargets){
       e.col+=( G.col-e.col)*pull;e.row+=(G.row-e.row)*pull;
-      const dmg=Math.floor((G.atkDmg*.4+Math.floor(G.int*.8))*effDmg);e.hp-=dmg;e.hitFlash=1;if(e.hp<=0)killEnemy(e);
+      const dmg=Math.floor((G.atkDmg*.4+Math.floor(G.int*.8))*effDmg);e.hp-=dmg;e.hitFlash=1;trackDmg(dmg,'vortex');if(e.hp<=0)killEnemy(e);
     }
     gainSpellXp('vortex',vortexTargets.length);
 
@@ -252,7 +252,7 @@ function castSpell(def,s,G,cdMult=1){
     const quakeR=6.0+(s.spellLvl-1)*.2;
     const quakeTargets=state.enemies.filter(e=>dist(G,e)<quakeR);
     for(const e of quakeTargets){
-      const dmg=Math.floor((G.atkDmg+Math.floor(G.str*.9))*effDmg);e.hp-=dmg;e.hitFlash=1;
+      const dmg=Math.floor((G.atkDmg+Math.floor(G.str*.9))*effDmg);e.hp-=dmg;e.hitFlash=1;trackDmg(dmg,'quake');
       spawnFloat(ISO.toScreen(e.col,e.row).x,ISO.toScreen(e.col,e.row).y-15,`🌋${dmg}`,'#c8640a');
       if(e.hp<=0)killEnemy(e);
     }

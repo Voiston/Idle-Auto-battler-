@@ -140,6 +140,29 @@ function spawnPart(x,y,n,color,spd=2,life=.6){
   }
 }
 
+
+// ── DPS Meter ─────────────────────────────────────────────────────────
+function trackDmg(dmg, source){
+  if(!dmg||dmg<=0) return;
+  const now = performance.now()/1000;
+  const d = state.dps;
+  d._samples.push({t:now, dmg, source});
+  // Keep only last 5s
+  d._samples = d._samples.filter(s=>now-s.t<=d._window);
+  // Recalc totals
+  d.total = 0;
+  d._bySource = {};
+  for(const s of d._samples){
+    d.total += s.dmg;
+    d._bySource[s.source] = (d._bySource[s.source]||0) + s.dmg;
+  }
+  // Convert to DPS (damage per second)
+  d.totalDps  = Math.floor(d.total  / d._window);
+  for(const k of Object.keys(d._bySource)){
+    d._bySource[k] = Math.floor(d._bySource[k] / d._window);
+  }
+}
+
 function updateParticles(dt){
   for(let i=0;i<PARTICLE_POOL_SIZE;i++){
     const p=_partPool[i];if(!p.active)continue;
@@ -195,6 +218,7 @@ function attackBehavior(G,enemy,dt){
     if(ls?.unlocked){const leechRate=Math.min(.55,(.20+(G.baseLifesteal||0))+G.int*.003);const heal=Math.floor(dmg*leechRate*(ls.passiveMastery||1));G.hp=Math.min(G.maxHp,G.hp+heal);const gp=ISO.toScreen(G.col,G.row);fxLifesteal(ep.x,ep.y,gp.x,gp.y);}
     spawnFloat(ep.x,ep.y-20,crit?`⚡${dmg}!`:`-${dmg}`,crit?'#ffd700':'#ff6b35');
     spawnPart(ep.x,ep.y,crit?10:5,'#ff6b35',3);
+    trackDmg(dmg,'auto');
     if(crit){addLog(`⚡ CRIT ${enemy.name} −${dmg}`,'log-dmg');state.totalCrits=(state.totalCrits||0)+1;}
     if(typeof SFX!=='undefined'){if(crit)SFX.crit();else SFX.attack();}
     G.atkTimer=1/G.atkSpd;if(enemy.hp<=0)killEnemy(enemy);
@@ -213,7 +237,7 @@ function killEnemy(enemy){
     if(pool.length&&state.inventory.length<24){
       const tmpl=pool[Math.floor(Math.random()*pool.length)];
       const ep2=ISO.toScreen(enemy.col,enemy.row);
-      const bItem={...tmpl,...generateAffixes(tmpl),uid:Date.now()+Math.random()};
+      const bItem={...tmpl,...generateAffixes(tmpl,state.wave),uid:Date.now()+Math.random(),ilvl:state.wave};
       state.inventory.push(bItem);
       addLog(`💎 DROP BOSS: ${bItem.name} (${bossRar})!`,'log-loot');
       spawnFloat(ep2.x,ep2.y-30,tmpl.icon+'✨','#ffc107');
@@ -262,7 +286,7 @@ function killEnemy(enemy){
     // Mark loot
     if(elRar==='epic'||elRar==='legendary'){state.lootMarkers.push({x:p.x,y:p.y,color:enemy.eliteColor||'#ab47bc',icon:'✨',life:8,maxLife:8});}
   }
-  if(Math.random()<.011)dropItem(p.x,p.y);
+  if(Math.random()<.011)dropItem(p.x,p.y,state.wave);
   state.enemies=state.enemies.filter(e=>e!==enemy);
   checkLevelUp();checkAchievements();updateUI();renderUpgrades();
 }
