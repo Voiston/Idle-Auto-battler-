@@ -150,6 +150,7 @@
     <div id="modal-body"></div>
   </div>
 </div>
+<div id="stat-tooltip"><div class="stt-title" id="stt-title"></div><div class="stt-body" id="stt-body"></div></div>
 <div id="item-toast"><div class="tt-name" id="tt-name"></div><div id="tt-stats"></div><div class="tt-rarity" id="tt-rarity"></div></div>
 
 
@@ -166,6 +167,7 @@
   <script src="js/render/canvas.js"></script>
 
   <!-- UI must load early: showToastMsg, openModal, renderInventory used by systems -->
+  <script src="js/systems/audio.js"></script>
   <script src="js/render/ui.js"></script>
 
   <!-- Combat helpers: dist, rnd, spawnPart, spawnFloat, addLog, killEnemy, applyDot -->
