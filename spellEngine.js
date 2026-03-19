@@ -93,6 +93,7 @@ function learnSpell(id){
 }
 
 function updateSpells(dt){
+  if(typeof updateSetAutoCasts==="function")updateSetAutoCasts(dt);
   const G=state.golem;
   const cdMult=1-(G.cdReduction||0);
   for(const s of state.activeSpells){
@@ -107,6 +108,13 @@ function updateSpells(dt){
   }
   // Thorns passif — toujours actif si débloqué (pas de timer)
   const thorns=getSpellState('thorns');// handled in updateEnemies hit section
+  // Bloodpact passive: -5% HP/s, +15% DMG
+  const bp=getSpellState('bloodpact');
+  if(bp?.unlocked){
+    const G2=state.golem;
+    G2.hp=Math.max(1,G2.hp-G2.maxHp*.05*dt);
+    G2.atkDmg=Math.floor(G2.atkDmg*1.0015); // tiny boost per tick (cumulative), capped in recalc
+  }
   const regen=getSpellState('regen');
   if(regen?.unlocked&&regen.timer<=0){
     const healAmt=G.maxHp*regen.healPct*(regen.passiveMastery||1);
@@ -120,7 +128,8 @@ function updateSpells(dt){
 
 function castSpell(def,s,G,cdMult=1){
   // Mastery bonuses
-  const effCd  = Math.max(1, def.cd * cdMult * (1-(s.cdMastery||0)));
+  const _arcMastery=state.golem._setArcaneMastery?0.5:1;
+  const effCd  = Math.max(1, def.cd * cdMult * (1-(s.cdMastery||0)) * _arcMastery);
   const effMp  = Math.max(0, def.mp - (s.mpMastery||0));
   const effDmg = (def.dmgMult||1) * (s.dmgMastery||1) * (G.spellDmgBonus||1);
   G.mp=Math.max(0,G.mp-effMp); s.timer=effCd;
@@ -325,7 +334,75 @@ function castSpell(def,s,G,cdMult=1){
       },delay);delay+=80;
     }
     gainSpellXp('bonespear',near.length+1);
+  
+  }else if(def.id==='shockwave'){
+    // Repousse tous les ennemis proches + dégâts
+    const allNear=state.enemies.filter(e=>dist(G,e)<6);
+    const spGp=ISO.toScreen(G.col,G.row);fxShockwave(spGp.x,spGp.y);
+    for(const e of allNear){
+      const dmg=Math.floor((G.atkDmg+G.str)*effDmg);e.hp-=dmg;e.hitFlash=1;
+      // Knockback
+      const angle=Math.atan2(e.row-G.row,e.col-G.col);
+      e.col+=Math.cos(angle)*3;e.row+=Math.sin(angle)*3;
+      spawnFloat(ISO.toScreen(e.col,e.row).x,ISO.toScreen(e.col,e.row).y-15,`💥${dmg}`,'#ff6b35');
+      if(e.hp<=0)killEnemy(e);
+    }
+    addLog(`💥 Onde de Choc Niv.${s.spellLvl}: ${allNear.length} repoussés`,'log-spell');
+    gainSpellXp('shockwave',allNear.length+1);
+
+  }else if(def.id==='frostbolt'&&near[0]){
+    const tgt=near[0];const ep2=ISO.toScreen(tgt.col,tgt.row);
+    const dmg=Math.floor((G.atkDmg*.5+Math.floor(G.int*1.8))*effDmg);
+    tgt.hp-=dmg;tgt.hitFlash=1;
+    // Freeze: reduce speed drastically
+    const origSpd=tgt._origSpd||tgt.spd;tgt._origSpd=origSpd;
+    tgt.spd=origSpd*.2;tgt.slow=.8;
+    setTimeout(()=>{tgt.spd=origSpd;tgt.slow=0;},2000*(1+(s.spellLvl-1)*.1));
+    spawnFloat(ep2.x,ep2.y-20,`🧊${dmg}`,'#80d8ff');
+    spawnPart(ep2.x,ep2.y,8,'#80d8ff',2,.4);
+    addLog(`🧊 Givre Niv.${s.spellLvl}: ${dmg} + gelé!`,'log-spell');
+    if(tgt.hp<=0)killEnemy(tgt);
+    gainSpellXp('frostbolt',2);
+
+  }else if(def.id==='voidpulse'){
+    const voidNear=state.enemies.filter(e=>dist(G,e)<5);
+    const dotDmg=Math.floor((G.int*2.5)*effDmg/(5));
+    for(const e of voidNear){applyDot(e,'void',dotDmg,5,1);}
+    const vp=ISO.toScreen(G.col,G.row);
+    spawnPart(vp.x,vp.y,20,'#ce93d8',4,1);
+    spawnFloat(vp.x,vp.y-30,`🌀×${voidNear.length}`,'#ce93d8');
+    addLog(`🌀 Pulsion du Vide Niv.${s.spellLvl}: DOT void ×${voidNear.length}`,'log-spell');
+    gainSpellXp('voidpulse',voidNear.length+1);
+
+  }else if(def.id==='earthquake'){
+    const allE=state.enemies.filter(e=>dist(G,e)<12);
+    const eqGp=ISO.toScreen(G.col,G.row);fxQuake(eqGp.x,eqGp.y);
+    for(const e of allE){
+      const dmg=Math.floor((G.atkDmg+Math.floor(G.str*1.5))*effDmg);e.hp-=dmg;e.hitFlash=1;
+      spawnFloat(ISO.toScreen(e.col,e.row).x,ISO.toScreen(e.col,e.row).y-15,`🌍${dmg}`,'#a1887f');
+      if(e.hp<=0)killEnemy(e);
+    }
+    addLog(`🌍 Séisme Massif Niv.${s.spellLvl}: ${allE.length} ennemis!`,'log-spell');
+    gainSpellXp('earthquake',allE.length+2);
+
+  }else if(def.id==='soulstorm'){
+    const targets=state.enemies.slice().sort(()=>Math.random()-.5).slice(0,5);
+    addLog(`👻 Tempête des Âmes Niv.${s.spellLvl}: ${targets.length} âmes!`,'log-spell');
+    const ssGp=ISO.toScreen(G.col,G.row);
+    for(let si=0;si<targets.length;si++){
+      setTimeout(()=>{
+        const e=targets[si];if(!e||!state.enemies.includes(e))return;
+        const dmg=Math.floor((G.int*1.8)*effDmg);e.hp-=dmg;e.hitFlash=1;
+        const ep3=ISO.toScreen(e.col,e.row);
+        spawnFloat(ep3.x,ep3.y-18,`👻${dmg}`,'#e1bee7');
+        spawnPart(ep3.x,ep3.y,6,'#e1bee7',2,.4);
+        if(e.hp<=0)killEnemy(e);
+      },si*200);
+    }
+    gainSpellXp('soulstorm',targets.length+1);
   }
+  // bloodpact is passive — handled in updateGolem
+
   // soulharvest is passive — handled in killEnemy
 }
   // ── Multicast echo (50% bonus DMG, no MP cost, slight delay) ─────────

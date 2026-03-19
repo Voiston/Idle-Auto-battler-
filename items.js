@@ -27,6 +27,14 @@ const SPELL_DEFS=[
   {id:'warcry',    name:'Cri de Guerre',  icon:'📣',desc:'+30% ATK/DEF/SPD à tous les sorts actifs 8s',   type:'active', cd:20,mp:18,lvl:5,tag:'active'},
   {id:'bonespear', name:"Lance d'Os",    icon:'🦴',desc:'Projectile perçant: 350% ATK sur ligne ennemis',type:'active', cd:8, mp:20,lvl:4,dmgMult:3.5,tag:'active'},
   {id:'soulharvest',name:"Moisson d'Ames",icon:'💠',desc:'Passif: +2% DMG permanent par ennemi tué (max 100)',type:'passive',cd:0,mp:0,lvl:6,tag:'passive'},
+
+  // ══ NOUVEAUX SORTS DIABLO v4 ═══════════════════════════════════════
+  {id:'shockwave',  name:'Onde de Choc',    icon:'💥',desc:'Explosion 360° repousse et inflige 200% ATK à tous',    type:'active', cd:10,mp:22,lvl:5,dmgMult:2.0,tag:'aoe'},
+  {id:'frostbolt',  name:'Flèche de Givre', icon:'🧊',desc:'Projectile: 180% ATK+INT, gèle cible 2s (-80% spd)',   type:'active', cd:5, mp:14,lvl:3,dmgMult:1.8,tag:'active'},
+  {id:'voidpulse',  name:'Pulsion du Vide', icon:'🌀',desc:'DOT vide sur tous les ennemis proches 250% INT sur 5s', type:'active', cd:12,mp:20,lvl:6,tag:'aoe'},
+  {id:'bloodpact',  name:'Pacte de Sang',   icon:'🩸',desc:'Passif: +15% DMG mais -5% HP/s tant quactif',         type:'passive',cd:0, mp:0, lvl:5,tag:'passive'},
+  {id:'earthquake', name:'Séisme Massif',   icon:'🌍',desc:'Tremblement géant: 400% ATK+STR à tout écran',          type:'active', cd:18,mp:30,lvl:7,dmgMult:4.0,tag:'aoe'},
+  {id:'soulstorm',  name:'Tempête des Âmes',icon:'👻',desc:'Invoque 5 âmes qui traquent les ennemis 180% INT chacune',type:'active',cd:16,mp:25,lvl:6,dmgMult:1.8,tag:'aoe'},
   {id:'sacrifice', name:'Sacrifice',       icon:'🩹',desc:'Consomme 25% HP pour soigner 80% HP max',        type:'active', cd:30,mp:0, lvl:6,tag:'active'},
 ];
 const ITEMS=[
@@ -116,6 +124,39 @@ const ITEMS=[
   {id:'sc17',name:'Parchemin: Dechirement',icon:'📜',slot:null,  rarity:'rare',     stats:{},spell:'soulrip'},
   {id:'sc18',name:'Parchemin: Teleport',   icon:'📜',slot:null,  rarity:'epic',     stats:{},spell:'blink'},
   {id:'sc19',name:'Parchemin: Sacrifice',  icon:'📜',slot:null,  rarity:'legendary',stats:{},spell:'sacrifice'},
+
+  // ══ SET ITEMS ══════════════════════════════════════════════════════
+  // ── Set 1: Fureur du Berserker ─────────────────────────────────────
+  {id:'sb1',name:'Heaume du Berserker',   icon:'💢',slot:'head', rarity:'legendary',setId:'berserker_set',stats:{str:15,atk:12,crit:10}},
+  {id:'sb2',name:'Armure de la Frenesie', icon:'🔥',slot:'body', rarity:'legendary',setId:'berserker_set',stats:{str:18,def:8,hp:40,atk:8}},
+  {id:'sb3',name:'Haches Jumelles',       icon:'⚔️',slot:'arm2', rarity:'legendary',setId:'berserker_set',stats:{atk:25,str:12,crit:15,spd:3}},
+  {id:'sb4',name:'Ceinture du Carnage',   icon:'🩸',slot:'belt', rarity:'legendary',setId:'berserker_set',stats:{str:14,atk:10,crit:8,spd:2}},
+
+  // ── Set 2: Mysteres de l'Arcane ────────────────────────────────────
+  {id:'sa1',name:'Tiare Arcaniste',       icon:'✨',slot:'head', rarity:'legendary',setId:'arcane_set',stats:{int:18,mp:30,crit:8}},
+  {id:'sa2',name:'Robe des Etoiles',      icon:'🌌',slot:'body', rarity:'legendary',setId:'arcane_set',stats:{int:22,mp:40,def:6,hp:20}},
+  {id:'sa3',name:'Orbe Primordial',       icon:'🔮',slot:'arm1', rarity:'legendary',setId:'arcane_set',stats:{int:20,mp:25,atk:6,crit:10}},
+  {id:'sa4',name:'Ceinture des Runes',    icon:'💫',slot:'belt', rarity:'legendary',setId:'arcane_set',stats:{int:15,mp:20,rfire:10,rice:10,rvoid:10}},
+
+  // ── Set 3: Carapace du Titan ───────────────────────────────────────
+  {id:'st1',name:'Heaume Titan',          icon:'🏔️',slot:'head', rarity:'legendary',setId:'titan_set',stats:{def:18,hp:50,str:8}},
+  {id:'st2',name:'Plastron du Colosse',   icon:'🛡️',slot:'body', rarity:'legendary',setId:'titan_set',stats:{def:25,hp:80,rfire:15,rice:15}},
+  {id:'st3',name:'Gantelets Colossaux',   icon:'🦾',slot:'arm1', rarity:'legendary',setId:'titan_set',stats:{def:14,str:10,hp:35,atk:5}},
+  {id:'st4',name:'Bottes de Granit',      icon:'🪨',slot:'boots',rarity:'legendary',setId:'titan_set',stats:{def:12,hp:30,spd:2,rvoid:15}},
+
+  // ── Set 4: Ombre du Neant ──────────────────────────────────────────
+  {id:'sv1',name:'Masque du Vide',        icon:'🌑',slot:'head', rarity:'legendary',setId:'void_set',stats:{int:14,rvoid:30,crit:12,mp:20}},
+  {id:'sv2',name:'Manteau du Neant',      icon:'🌀',slot:'body', rarity:'legendary',setId:'void_set',stats:{int:18,rvoid:25,def:10,hp:25}},
+  {id:'sv3',name:'Lame du Vide',          icon:'💀',slot:'arm2', rarity:'legendary',setId:'void_set',stats:{atk:20,int:12,rvoid:20,crit:10}},
+  {id:'sv4',name:'Sanges du Neant',       icon:'🩻',slot:'boots',rarity:'legendary',setId:'void_set',stats:{spd:8,rvoid:25,int:10,crit:8}},
+
+  // ── Scrolls nouveaux sorts ─────────────────────────────────────────
+  {id:'sc23',name:'Parchemin: Onde',        icon:'📜',slot:null,  rarity:'rare',    stats:{},spell:'shockwave'},
+  {id:'sc24',name:'Parchemin: Givre',       icon:'📜',slot:null,  rarity:'uncommon',stats:{},spell:'frostbolt'},
+  {id:'sc25',name:'Parchemin: Pulsion',     icon:'📜',slot:null,  rarity:'epic',    stats:{},spell:'voidpulse'},
+  {id:'sc26',name:'Parchemin: Pacte',       icon:'📜',slot:null,  rarity:'epic',    stats:{},spell:'bloodpact'},
+  {id:'sc27',name:'Parchemin: Seisme M.',   icon:'📜',slot:null,  rarity:'epic',    stats:{},spell:'earthquake'},
+  {id:'sc28',name:'Parchemin: Tempete Ames',icon:'📜',slot:null,  rarity:'legendary',stats:{},spell:'soulstorm'},
 ];
 // Loot weight table — poids relatifs, scale avec les vagues
 function getLootWeights(wave){

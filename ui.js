@@ -91,12 +91,43 @@ function renderInventory(){
   const grid=document.getElementById('inv-grid');
   document.getElementById('inv-count').textContent=state.inventory.length;
   let html='';
-  for(let i=0;i<24;i++){const item=state.inventory[i];if(item)html+=`<div class="inv-item ${item.rarity}" data-idx="${i}">${item.icon}<div class="rarity-dot"></div></div>`;else html+='<div class="inv-item"></div>';}
+  for(let i=0;i<24;i++){const item=state.inventory[i];if(item)html+=`<div class="inv-item ${item.rarity}${item.affixes&&item.affixes.length?' has-affixes':''}" data-idx="${i}" title="${item.name}">${item.icon}${item.affixes&&item.affixes.length>0?'<div class="affix-dot"></div>':''}${item.setId&&typeof SET_DEFS!=='undefined'&&SET_DEFS[item.setId]?`<div class="set-dot" style="background:${SET_DEFS[item.setId].color};box-shadow:0 0 4px ${SET_DEFS[item.setId].color}"></div>`:''}<div class="rarity-dot"></div></div>`;else html+='<div class="inv-item"></div>';}
   grid.innerHTML=html;
   grid.querySelectorAll('.inv-item[data-idx]').forEach(el=>{const item=state.inventory[+el.dataset.idx];if(!item)return;el.addEventListener('click',()=>openItemModal(item));});
 }
+function renderSetDisplay(){
+  const G=state.golem;
+  const summary=getSetSummary();
+  let container=document.getElementById('set-display');
+  if(!container){
+    container=document.createElement('div');
+    container.id='set-display';
+    container.style.cssText='margin-top:8px;padding:6px 8px;background:rgba(5,6,12,.6);border-radius:8px;border:1px solid rgba(255,255,255,.06);';
+    const eq=document.getElementById('equip-layout');
+    if(eq&&eq.parentNode)eq.parentNode.insertBefore(container,eq.nextSibling);
+  }
+  if(!summary.length){container.innerHTML='<div style="font-size:9px;color:var(--muted);text-align:center">Aucun set actif</div>';return;}
+  container.innerHTML=summary.map(({def,count,maxPieces,active})=>{
+    const pips=def.pieces.map((_,i)=>`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin:0 1px;background:${i<count?def.color:'rgba(255,255,255,.12)'};box-shadow:${i<count?'0 0 4px '+def.color:'none'}"></span>`).join('');
+    const bonusLines=Object.entries(def.bonuses).map(([thr,b])=>{
+      const on=count>=Number(thr);
+      return `<div style="font-size:9px;color:${on?def.color:'var(--muted)'};margin-top:2px">${on?'✓':'○'} ${b.label}: ${b.desc}</div>`;
+    }).join('');
+    return `<div style="margin-bottom:6px;padding:5px 6px;background:rgba(255,255,255,.03);border-radius:5px;border-left:2px solid ${def.color}">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+        <span>${def.icon}</span>
+        <span style="font-family:'Cinzel',serif;font-size:10px;color:${def.color}">${def.name}</span>
+        <span style="margin-left:auto;font-size:9px;color:var(--muted)">${count}/${maxPieces}</span>
+      </div>
+      <div>${pips}</div>
+      ${bonusLines}
+    </div>`;
+  }).join('');
+}
+
 function renderEquip(){
   const G=state.golem;
+  renderSetDisplay();
   document.querySelectorAll('.eq-slot').forEach(el=>{
     const slot=el.dataset.slot;const item=G.equipped[slot];
     if(item){el.classList.add('filled');el.innerHTML=`<span style="font-size:19px">${item.icon}</span><div class="eq-lbl">${slot.toUpperCase()}</div><div class="eq-unequip-dot" data-slot="${slot}"></div>`;}

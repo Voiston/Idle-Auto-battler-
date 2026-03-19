@@ -32,3 +32,226 @@ function getEquipComparison(item){
   const allK=new Set([...Object.keys(item.stats||{}),...(cur?Object.keys(cur.stats||{}):[] )]);
   return [...allK].map(k=>({key:k,newVal:item.stats?.[k]||0,curVal:cur?.stats?.[k]||0,diff:(item.stats?.[k]||0)-(cur?.stats?.[k]||0)}));
 }
+
+// ══ SET SYSTEM ════════════════════════════════════════════════════════
+// Sets: each item has an optional setId. When 2+ pieces of the same set
+// are equipped, bonuses activate. Bonuses can buff stats OR unlock spells.
+
+const SET_DEFS = {
+
+  // ── SET 1 : Fureur du Berserker (STR / physique) ──────────────────
+  berserker_set: {
+    name: "Fureur du Berserker",
+    icon: "⚔️",
+    color: "#ff6d00",
+    pieces: ['sb1','sb2','sb3','sb4'],
+    bonuses: {
+      2: {
+        label: "2 pièces",
+        desc: "+25% ATK, +10% crit",
+        apply(G){ G.atkDmg = Math.floor(G.atkDmg*1.25); G.critChance = Math.min(80,G.critChance+10); }
+      },
+      3: {
+        label: "3 pièces",
+        desc: "Berserker auto-cast toutes les 12s",
+        spellUnlock: 'berserker',
+        apply(G){ G._setBerserkerAuto = true; }
+      },
+      4: {
+        label: "4 pièces",
+        desc: "+80% DMG crit, vitesse attaque ×1.4",
+        apply(G){ G.critDmgBonus=(G.critDmgBonus||0)+.80; G.atkSpd*=1.4; }
+      }
+    }
+  },
+
+  // ── SET 2 : Mystères de l'Arcane (INT / sorts) ────────────────────
+  arcane_set: {
+    name: "Mystères de l'Arcane",
+    icon: "🔮",
+    color: "#7c4dff",
+    pieces: ['sa1','sa2','sa3','sa4'],
+    bonuses: {
+      2: {
+        label: "2 pièces",
+        desc: "+35% DMG sorts, +30 MP MAX",
+        apply(G){ G.spellDmgBonus=(G.spellDmgBonus||1)*1.35; G.maxMp+=30; G.mp=Math.min(G.mp+30,G.maxMp); }
+      },
+      3: {
+        label: "3 pièces",
+        desc: "Tempête Arcane auto-cast toutes les 15s",
+        spellUnlock: 'arcstorm',
+        apply(G){ G._setArcstormAuto = true; }
+      },
+      4: {
+        label: "4 pièces",
+        desc: "Tous les sorts: CD ×0.5, MP ×0.5",
+        apply(G){ G._setArcaneMastery = true; }
+      }
+    }
+  },
+
+  // ── SET 3 : Carapace du Titan (DEF / survie) ──────────────────────
+  titan_set: {
+    name: "Carapace du Titan",
+    icon: "🛡️",
+    color: "#29b6f6",
+    pieces: ['st1','st2','st3','st4'],
+    bonuses: {
+      2: {
+        label: "2 pièces",
+        desc: "+40% HP MAX, +15 DEF",
+        apply(G){ G.maxHp=Math.floor(G.maxHp*1.4); G.def+=15; G.hp=Math.min(G.hp,G.maxHp); }
+      },
+      3: {
+        label: "3 pièces",
+        desc: "Bouclier auto-cast toutes les 20s",
+        spellUnlock: 'shield',
+        apply(G){ G._setShieldAuto = true; }
+      },
+      4: {
+        label: "4 pièces",
+        desc: "20% des dégâts reçus absorbés + régén 3% HP/s",
+        apply(G){ G.dmgReduction=(G.dmgReduction||0)+.20; G.hpRegen=(G.hpRegen||1)+3; }
+      }
+    }
+  },
+
+  // ── SET 4 : Ombre du Néant (void / abyssal) ───────────────────────
+  void_set: {
+    name: "Ombre du Néant",
+    icon: "🌑",
+    color: "#ce93d8",
+    pieces: ['sv1','sv2','sv3','sv4'],
+    bonuses: {
+      2: {
+        label: "2 pièces",
+        desc: "+50% Rés. Vide, +20 INT, Déchirement auto-cast",
+        spellUnlock: 'soulrip',
+        apply(G){ G.resVoid=Math.min(75,(G.resVoid||0)+50); G.int+=20; G._setVoidAuto=true; }
+      },
+      3: {
+        label: "3 pièces",
+        desc: "Chaque kill: +1% DMG temporaire (30s, max 50%)",
+        apply(G){ G._setVoidKillBuff=true; }
+      },
+      4: {
+        label: "4 pièces",
+        desc: "Téléportation auto-cast + DMG sorts void ×2",
+        spellUnlock: 'blink',
+        apply(G){ G._setBlinkAuto=true; G.spellDmgBonus=(G.spellDmgBonus||1)*2; }
+      }
+    }
+  },
+};
+
+// Active set bonuses — called from recalcStats AFTER equip stats applied
+function applySetBonuses(){
+  const G = state.golem;
+  // Reset all set flags
+  G._setBerserkerAuto=false; G._setArcstormAuto=false;
+  G._setShieldAuto=false; G._setArcaneMastery=false;
+  G._setVoidAuto=false; G._setVoidKillBuff=false; G._setBlinkAuto=false;
+
+  const activeSets = {};
+  for(const it of Object.values(G.equipped)){
+    if(!it||!it.setId) continue;
+    activeSets[it.setId] = (activeSets[it.setId]||0)+1;
+  }
+
+  state._activeSets = activeSets;
+
+  for(const[setId, count] of Object.entries(activeSets)){
+    const def = SET_DEFS[setId]; if(!def) continue;
+    const thresholds = Object.keys(def.bonuses).map(Number).sort((a,b)=>a-b);
+    for(const thr of thresholds){
+      if(count >= thr){
+        def.bonuses[thr].apply(G);
+        // Auto-unlock set spell if needed
+        const sid = def.bonuses[thr].spellUnlock;
+        if(sid){ const sp=getSpellState(sid); if(sp&&!sp.unlocked){sp.unlocked=true; addLog(`✨ Set: ${def.name} débloque ${sid}!`,'log-spell');} }
+      }
+    }
+  }
+}
+
+// Patch recalcStats to call applySetBonuses after equip loop
+const _origRecalcStats = recalcStats;
+recalcStats = function(){
+  _origRecalcStats();
+  if(typeof applySetBonuses==='function') applySetBonuses();
+};
+
+// Set bonus auto-casts (checked in updateSpells tick)
+function updateSetAutoCasts(dt){
+  const G=state.golem;
+  if(!state._activeSets||Object.keys(state._activeSets).length===0) return;
+
+  // Berserker auto-cast (set 1, 3 pièces)
+  if(G._setBerserkerAuto){
+    if(!G._berserkerAutoTimer) G._berserkerAutoTimer=12;
+    G._berserkerAutoTimer-=dt;
+    if(G._berserkerAutoTimer<=0){
+      G._berserkerAutoTimer=12;
+      const s=getSpellState('berserker');const d=getSpellDef('berserker');
+      if(s&&d){castSpell(d,s,G,state.enemies.filter(e=>dist(G,e)<4));}
+    }
+  }
+  // Arcstorm auto-cast (set 2, 3 pièces)
+  if(G._setArcstormAuto){
+    if(!G._arcstormAutoTimer) G._arcstormAutoTimer=15;
+    G._arcstormAutoTimer-=dt;
+    if(G._arcstormAutoTimer<=0){
+      G._arcstormAutoTimer=15;
+      const s=getSpellState('arcstorm');const d=getSpellDef('arcstorm');
+      if(s&&d){castSpell(d,s,G,state.enemies.filter(e=>dist(G,e)<8));}
+    }
+  }
+  // Shield auto-cast (set 3, 3 pièces)
+  if(G._setShieldAuto){
+    if(!G._shieldAutoTimer) G._shieldAutoTimer=20;
+    G._shieldAutoTimer-=dt;
+    if(G._shieldAutoTimer<=0){
+      G._shieldAutoTimer=20;
+      const s=getSpellState('shield');const d=getSpellDef('shield');
+      if(s&&d&&s.unlocked){castSpell(d,s,G,[]);}
+    }
+  }
+  // Soulrip auto-cast (set 4, 2 pièces)
+  if(G._setVoidAuto){
+    if(!G._soulripAutoTimer) G._soulripAutoTimer=9;
+    G._soulripAutoTimer-=dt;
+    if(G._soulripAutoTimer<=0){
+      G._soulripAutoTimer=9;
+      const near=state.enemies.filter(e=>dist(G,e)<4);
+      const s=getSpellState('soulrip');const d=getSpellDef('soulrip');
+      if(s&&d&&near[0]){castSpell(d,s,G,near);}
+    }
+  }
+  // Blink auto-cast (set 4, 4 pièces)
+  if(G._setBlinkAuto){
+    if(!G._blinkAutoTimer) G._blinkAutoTimer=18;
+    G._blinkAutoTimer-=dt;
+    if(G._blinkAutoTimer<=0){
+      G._blinkAutoTimer=18;
+      const near=state.enemies.filter(e=>dist(G,e)<10);
+      const s=getSpellState('blink');const d=getSpellDef('blink');
+      if(s&&d&&near[0]){castSpell(d,s,G,near);}
+    }
+  }
+  // Set Arcane Mastery: CD/MP reduction applied dynamically in castSpell
+  // (checked via G._setArcaneMastery flag)
+}
+
+// Get active set summary for UI display
+function getSetSummary(){
+  const sets = state._activeSets||{};
+  const result=[];
+  for(const[setId,count] of Object.entries(sets)){
+    const def=SET_DEFS[setId];if(!def)continue;
+    const thresholds=Object.keys(def.bonuses).map(Number).sort((a,b)=>a-b);
+    const active=thresholds.filter(t=>count>=t);
+    result.push({setId,def,count,maxPieces:def.pieces.length,active});
+  }
+  return result;
+}

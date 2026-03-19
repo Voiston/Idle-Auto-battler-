@@ -421,3 +421,7 @@
     .ps-divin   {color:var(--c-legendary);border-color:var(--c-legendary);}
 
     @keyframes waveFlash{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}70%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.1)}}
+
+    /* ── SETS ── */
+    .set-dot{position:absolute;bottom:2px;right:10px;width:5px;height:5px;border-radius:50%;}
+    #set-display{margin-top:8px;}
