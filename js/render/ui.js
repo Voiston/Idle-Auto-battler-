@@ -246,7 +246,7 @@ function showToastMsg(msg,color='#00e5ff'){
 
 // ══ TABS / COLLAPSE ═══════════════════════════════════════════════════
 let drawerCollapsed=false,drawerWrap=null;
-const DRAWER_H=240;
+const DRAWER_H=340;
 function initDrawer(){drawerWrap=document.getElementById('drawer-wrap');}
 function toggleDrawer(){if(!drawerWrap)drawerWrap=document.getElementById('drawer-wrap');drawerCollapsed=!drawerCollapsed;drawerWrap.style.height=drawerCollapsed?'0':DRAWER_H+'px';setTimeout(resizeCanvas,370);}
 // ── Auto-vente multi-rareté ───────────────────────────────────────────
