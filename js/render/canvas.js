@@ -1,6 +1,6 @@
 // ── ISO (isometric coordinate system, camera centred on Golem) ───────
 const ISO = {
-  tileW: 44, tileH: 22,
+  tileW: 34, tileH: 17,
   get camCol(){ return state?.golem?.col || 8; },
   get camRow(){ return state?.golem?.row || 8; },
   toScreen(c, r){

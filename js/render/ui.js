@@ -15,6 +15,18 @@ function updateUI(){
   // Power Score
   const ps=calcPowerScore();
   const psel=document.getElementById('power-score-val');if(psel)psel.textContent=ps;
+  // DPS meter
+  const dpsEl=document.getElementById('dps-total');
+  const dpsDetail=document.getElementById('dps-detail');
+  if(dpsEl&&state.dps){
+    dpsEl.textContent=(state.dps.totalDps||0).toLocaleString();
+    if(dpsDetail){
+      const bySource=state.dps._bySource||{};
+      const srcNames={auto:'⚔️',slam:'💥',chain:'⚡',meteor:'☄️',quake:'🌋',vortex:'🌀',arcstorm:'⚡',toxiccloud:'☠️',blizzard:'❄️',shockwave:'💢',frostbolt:'🧊',voidpulse:'🌑',earthquake:'🌍',soulstorm:'👻',hydra:'🐲',bonespear:'🦴',warcry:'📣',counter:'🔄',blink:'⚡',soulrip:'💔'};
+      const parts=Object.entries(bySource).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([k,v])=>`${srcNames[k]||'?'}${v.toLocaleString()}`);
+      dpsDetail.textContent=parts.join(' · ');
+    }
+  }
   const pst=document.getElementById('power-score-tier');
   if(pst){const tier=ps<500?'Normal':ps<1500?'Fort':ps<4000?'Puissant':ps<10000?'Héroïque':'Divin';const cls='ps-'+tier.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');pst.textContent=tier;pst.className='ps-tier '+cls;}document.getElementById('enemy-count').textContent=state.enemies.length;
   document.getElementById('score-val').textContent=state.score.toLocaleString();
@@ -98,7 +110,8 @@ function renderInventory(){
       const setDef   = item.setId&&typeof SET_DEFS!=='undefined' ? SET_DEFS[item.setId] : null;
       const setDot   = setDef ? '<div class="set-dot" style="background:'+setDef.color+';box-shadow:0 0 4px '+setDef.color+'"></div>' : '';
       const cls      = 'inv-item '+item.rarity+(item.affixes&&item.affixes.length?' has-affixes':'');
-      html += '<div class="'+cls+'" data-idx="'+i+'" title="'+item.name+'">'+item.icon+affixDot+setDot+'<div class="rarity-dot"></div></div>';
+      const ilvlTag  = item.ilvl&&item.ilvl>1 ? '<div style="position:absolute;bottom:1px;left:2px;font-size:7px;color:#4fc3f7;line-height:1">'+item.ilvl+'</div>' : '';
+      html += '<div class="'+cls+'" data-idx="'+i+'" title="'+item.name+'">'+item.icon+affixDot+setDot+ilvlTag+'<div class="rarity-dot"></div></div>';
     } else {
       html += '<div class="inv-item"></div>';
     }
@@ -271,6 +284,7 @@ function openItemModal(item){
   const baseItem=ITEMS.find(i=>i.id===item.id)||item;
   const baseStats=baseItem.stats||{};
   const affixStats=item.affixes||[];
+  const ilvlBadge = item.ilvl && item.ilvl>1 ? `<span style="font-size:9px;color:#4fc3f7;background:rgba(79,195,247,.12);border:1px solid rgba(79,195,247,.3);border-radius:4px;padding:1px 5px;margin-left:4px;">iLvl ${item.ilvl}</span>` : '';
   let statsHtml=Object.entries(item.stats||{}).filter(([,v])=>v!==0).map(([k,v])=>{
     const base=baseStats[k]||0;const bonus=v-base;
     return `<span class="mic-stat ${v>0?'pos':'neg'}">${STAT_LABELS[k]||k}: ${v>0?'+':''}${v}${bonus>0?` <span style="font-size:9px;color:var(--gold)">(+${bonus.toFixed(1)} roulé)</span>`:''}  </span>`;
@@ -349,7 +363,7 @@ function sellByRarity(maxRarity){
   const sold=state.inventory.filter(i=>rarToSell.includes(i.rarity));
   if(!sold.length){showToastMsg('Rien à vendre!','#4a5a7a');return;}
   let gold=0;for(const i of sold)gold+=rarityGoldVal(i.rarity);
-  state.inventory=state.inventory.filter(i=>i.spell||!rarToSell.includes(i.rarity));
+  state.inventory=state.inventory.filter(i=>!rarToSell.includes(i.rarity));
   state.golem.gold+=gold;
   addLog(`💰 ${sold.length} items vendus → +${gold} G`,'log-loot');
   renderInventory();updateUI();renderUpgrades();
