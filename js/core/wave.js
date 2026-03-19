@@ -10,9 +10,9 @@ function spawnWave(wave){
   }
   document.getElementById('boss-bar').style.display='none';
   // Density: more enemies in higher biomes
+  const bio=getBiome(wave);
   const baseDensity=bio===BIOMES.abyssal?6:bio===BIOMES.volcanic?5:3;
   const count=Math.min(40, baseDensity+wave*2);
-  const bio=getBiome(wave);
   let pool;
   if(bio===BIOMES.abyssal){
     const apools=[['frostshade','voidarcher'],['frostshade','glacialgolem'],['voidarcher','abyssalbehemoth','glacialgolem'],['abyssalbehemoth','glacialgolem'],['abyssalbehemoth','voidarcher','glacialgolem']];
