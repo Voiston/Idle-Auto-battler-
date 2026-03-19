@@ -18,6 +18,7 @@ function equipItem(item){
   G.equipped[item.slot]=item;
   const idx=state.inventory.findIndex(i=>i.uid===item.uid);if(idx!==-1)state.inventory.splice(idx,1);
   recalcStats();addLog(`⚔️ ${item.icon} ${item.name} équipé!`,'log-spell');
+  if(typeof SFX!=='undefined')SFX.equip();
   showToastMsg(item.icon+' '+item.name+' équipé!','#00e5ff');
   renderInventory();renderEquip();updateUI();
 }
@@ -117,6 +118,38 @@ const SET_DEFS = {
     }
   },
 
+
+  // ── Set 5: Foudre de Tal Rasha (élémentaire, 5 pièces) ────────────
+  talrasha_set: {
+    name: "Foudre de Tal Rasha",
+    icon: "⚡",
+    color: "#29b6f6",
+    pieces: ['tr1','tr2','tr3','tr4','tr5'],
+    bonuses: {
+      2: {
+        label: "2 pièces",
+        desc: "+30% DMG sorts, résistances élémentaires +20% chacune",
+        apply(G){ G.spellDmgBonus=(G.spellDmgBonus||1)*1.30; G.resFire=Math.min(75,(G.resFire||0)+20); G.resIce=Math.min(75,(G.resIce||0)+20); G.resVoid=Math.min(75,(G.resVoid||0)+20); }
+      },
+      3: {
+        label: "3 pièces",
+        desc: "Hydre de Feu auto-cast toutes les 10s",
+        spellUnlock: 'hydra',
+        apply(G){ G._setHydraAuto=true; }
+      },
+      4: {
+        label: "4 pièces",
+        desc: "Chaque élément applique +15% DMG sorts pendant 5s (stack jusqu'à 3×)",
+        apply(G){ G._setTalrashaElementalBuff=true; }
+      },
+      5: {
+        label: "5 pièces",
+        desc: "Pacte Stellaire auto-cast toutes les 25s + CD sorts élémentaires ×0.4",
+        spellUnlock: 'starPact',
+        apply(G){ G._setStarPactAuto=true; G.spellDmgBonus=(G.spellDmgBonus||1)*1.20; }
+      }
+    }
+  },
   // ── SET 4 : Ombre du Néant (void / abyssal) ───────────────────────
   void_set: {
     name: "Ombre du Néant",
@@ -152,6 +185,7 @@ function applySetBonuses(){
   G._setBerserkerAuto=false; G._setArcstormAuto=false;
   G._setShieldAuto=false; G._setArcaneMastery=false;
   G._setVoidAuto=false; G._setVoidKillBuff=false; G._setBlinkAuto=false;
+  G._setHydraAuto=false; G._setStarPactAuto=false; G._setTalrashaElementalBuff=false;
 
   const activeSets = {};
   for(const it of Object.values(G.equipped)){
@@ -159,6 +193,8 @@ function applySetBonuses(){
     activeSets[it.setId] = (activeSets[it.setId]||0)+1;
   }
 
+  // Compare to previous to detect newly activated thresholds
+  const prev = state._prevActiveSets || {};
   state._activeSets = activeSets;
 
   for(const[setId, count] of Object.entries(activeSets)){
@@ -166,7 +202,14 @@ function applySetBonuses(){
     const thresholds = Object.keys(def.bonuses).map(Number).sort((a,b)=>a-b);
     for(const thr of thresholds){
       if(count >= thr){
+        // New threshold just reached?
+        const wasActive = (prev[setId]||0) >= thr;
+        const isNew = !wasActive;
         def.bonuses[thr].apply(G);
+        if(isNew && typeof SFX!=='undefined')SFX.setBonus();
+        if(isNew && typeof triggerSetFlash!=='undefined'){
+          triggerSetFlash(def.color, `${def.icon} ${def.name} ×${thr}`);
+        }
         // Auto-unlock set spell if needed
         const sid = def.bonuses[thr].spellUnlock;
         if(sid){ const sp=getSpellState(sid); if(sp&&!sp.unlocked){sp.unlocked=true; addLog(`✨ Set: ${def.name} débloque ${sid}!`,'log-spell');} }
@@ -228,6 +271,26 @@ function updateSetAutoCasts(dt){
       if(s&&d&&near[0]){castSpell(d,s,G,near);}
     }
   }
+  // Hydra auto-cast (Tal Rasha 3 pièces)
+  if(G._setHydraAuto){
+    if(!G._hydraAutoTimer)G._hydraAutoTimer=10;
+    G._hydraAutoTimer-=dt;
+    if(G._hydraAutoTimer<=0){
+      G._hydraAutoTimer=10;
+      const s=getSpellState('hydra');const d=getSpellDef('hydra');
+      if(s&&d){castSpell(d,s,G,state.enemies.filter(e=>dist(G,e)<8));}
+    }
+  }
+  // StarPact auto-cast (Tal Rasha 5 pièces)
+  if(G._setStarPactAuto){
+    if(!G._starPactAutoTimer)G._starPactAutoTimer=25;
+    G._starPactAutoTimer-=dt;
+    if(G._starPactAutoTimer<=0){
+      G._starPactAutoTimer=25;
+      const s=getSpellState('starPact');const d=getSpellDef('starPact');
+      if(s&&d){castSpell(d,s,G,state.enemies);}
+    }
+  }
   // Blink auto-cast (set 4, 4 pièces)
   if(G._setBlinkAuto){
     if(!G._blinkAutoTimer) G._blinkAutoTimer=18;
@@ -243,7 +306,6 @@ function updateSetAutoCasts(dt){
   // (checked via G._setArcaneMastery flag)
 }
 
-// Get active set summary for UI display
 function getSetSummary(){
   const sets = state._activeSets||{};
   const result=[];

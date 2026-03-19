@@ -12,6 +12,8 @@ function applyDot(target,type,dmg,dur,tickRate=1){
 }
 
 function updateDots(target,dt,isGolem=false){
+  if(isGolem&&state.golem._wraithFormActive)return; // intangible — no DoT
+  if(isGolem&&state.golem._archonActive){target.dots=[];return;} // archon clears DoT
   if(!target.dots||target.dots.length===0)return;
   for(let i=target.dots.length-1;i>=0;i--){
     const dot=target.dots[i];
@@ -114,7 +116,37 @@ function drawEliteAura(e){
 // ══ HELPERS ═══════════════════════════════════════════════════════════
 function dist(a,b){return Math.sqrt((a.col-b.col)**2+(a.row-b.row)**2);}
 function rnd(a,b){return a+Math.random()*(b-a);}
-function spawnPart(x,y,n,color,spd=2,life=.6){for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,s=rnd(.5,spd);state.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life,maxLife:life,color,size:rnd(1,4)});}}
+// ── Particle Pool (pre-allocated, no GC pressure) ────────────────────
+const PARTICLE_POOL_SIZE = 512;
+const _partPool = Array.from({length:PARTICLE_POOL_SIZE},()=>({x:0,y:0,vx:0,vy:0,life:0,maxLife:1,color:'#fff',size:2,active:false}));
+let _partHead = 0; // ring-buffer head
+
+function _allocPart(){
+  // Find next inactive slot (ring buffer)
+  for(let i=0;i<PARTICLE_POOL_SIZE;i++){
+    const idx=(_partHead+i)%PARTICLE_POOL_SIZE;
+    if(!_partPool[idx].active){_partHead=(idx+1)%PARTICLE_POOL_SIZE;return _partPool[idx];}
+  }
+  // Pool full — reuse head (oldest particle)
+  const p=_partPool[_partHead];_partHead=(_partHead+1)%PARTICLE_POOL_SIZE;return p;
+}
+
+function spawnPart(x,y,n,color,spd=2,life=.6){
+  for(let i=0;i<n;i++){
+    const p=_allocPart();
+    const a=Math.random()*Math.PI*2,s=rnd(.5,spd);
+    p.x=x;p.y=y;p.vx=Math.cos(a)*s;p.vy=Math.sin(a)*s;
+    p.life=life;p.maxLife=life;p.color=color;p.size=rnd(1,4);p.active=true;
+  }
+}
+
+function updateParticles(dt){
+  for(let i=0;i<PARTICLE_POOL_SIZE;i++){
+    const p=_partPool[i];if(!p.active)continue;
+    p.x+=p.vx;p.y+=p.vy;p.vy+=.05;p.life-=dt;
+    if(p.life<=0)p.active=false;
+  }
+}
 function spawnFloat(x,y,text,color){const el=document.createElement('div');el.className='float-number';el.style.cssText=`left:${x}px;top:${y}px;color:${color};`;el.textContent=text;cZone.appendChild(el);setTimeout(()=>el.remove(),1150);}
 let logEl=null,logLines=[];
 function getLogEl(){if(!logEl)logEl=document.getElementById('combat-log');return logEl;}
@@ -164,6 +196,7 @@ function attackBehavior(G,enemy,dt){
     spawnFloat(ep.x,ep.y-20,crit?`⚡${dmg}!`:`-${dmg}`,crit?'#ffd700':'#ff6b35');
     spawnPart(ep.x,ep.y,crit?10:5,'#ff6b35',3);
     if(crit){addLog(`⚡ CRIT ${enemy.name} −${dmg}`,'log-dmg');state.totalCrits=(state.totalCrits||0)+1;}
+    if(typeof SFX!=='undefined'){if(crit)SFX.crit();else SFX.attack();}
     G.atkTimer=1/G.atkSpd;if(enemy.hp<=0)killEnemy(enemy);
   }
 }
@@ -210,6 +243,9 @@ function killEnemy(enemy){
       G._voidKillTimer=setTimeout(()=>{G._voidKillBonusPct=0;recalcStats();},30000);
     }
   }
+  // StarPact: count kill
+  if(state.golem._starPactActive){state.golem._starPactKills=(state.golem._starPactKills||0)+1;}
+  if(typeof SFX!=='undefined')SFX.kill();
   state.golem.xp+=enemy.xp;state.golem.gold+=goldDrop;state.totalGoldEarned=(state.totalGoldEarned||0)+goldDrop;
   state.score+=enemy.xp*2;state.totalKills++;
   addLog(`💀 ${enemy.name} +${enemy.xp}XP +${enemy.gold}G`,'log-loot');
@@ -237,6 +273,7 @@ function checkLevelUp(){
     G.baseStats.maxHp+=15;G.baseStats.str+=2;G.baseStats.int+=1;G.baseStats.def+=1;G.baseStats.spd+=.3;G.baseStats.atkDmg+=3;G.baseStats.atkSpd+=.05;G.baseStats.critChance+=1;
     recalcStats();G.hp=G.maxHp;G.mp=G.maxMp;
     addLog(`✨ NIVEAU ${G.level}!`,'log-spell');
+    if(typeof SFX!=='undefined')SFX.levelUp();
     const p=ISO.toScreen(G.col,G.row);spawnPart(p.x,p.y,20,'#00e5ff',4,1);spawnFloat(p.x,p.y-30,`LVL ${G.level}!`,'#00e5ff');
     for(const s of state.activeSpells){if(!s.unlocked&&s.passive&&s.lvl<=G.level){s.unlocked=true;addLog(`✨ ${s.name} (passif) débloqué!`,'log-spell');}}
     renderSpells();
@@ -250,6 +287,7 @@ function updateEnemies(dt){
     if(e.isBoss&&!e.rageTriggered&&e.hp<=e.maxHp*.5){
       e.rageTriggered=true;e.inRage=true;e.spd*=1.4;e.dmg=Math.floor(e.dmg*1.3);
       addLog(`⚠ ${e.name} entre en RAGE!`,'log-warn');
+    if(typeof SFX!=='undefined')SFX.bossRage();
       spawnPart(ISO.toScreen(e.col,e.row).x,ISO.toScreen(e.col,e.row).y,20,'#ff6f00',5,1.2);
     }
     if(e.isBoss){updateBossBar(e);}
@@ -260,7 +298,8 @@ function updateEnemies(dt){
     if(d>e.range){const s=e.spd*sM*dt,f=Math.min(s/d,1);const dc=(G.col-e.col)*f,dr=(G.row-e.row)*f;e.col+=dc;e.row+=dr;e.facing=dc>0?1:-1;}
     else{e.facing=G.col>e.col?1:-1;if(e.atkTimer<=0){// DefShred on enemy reduces their effective def (not used for player, but applied on enemies hitting)
     if(e._defShredTimer>0){e._defShredTimer-=0.016;} // approx dt
-    const physRed=Math.floor(G.def*.6);let dmg=Math.max(1,e.dmg-physRed);dmg=Math.floor(dmg*(1-(G.dmgReduction||0)));G.hp-=dmg;G.hitFlash=1;state._tookDmgSinceKill=true;e.atkTimer=1.2/e.spd;
+    if(G._wraithFormActive)return; // intangible — no damage
+        const physRed=Math.floor(G.def*.6);let dmg=Math.max(1,e.dmg-physRed);dmg=Math.floor(dmg*(1-(G.dmgReduction||0)));G.hp-=dmg;G.hitFlash=1;state._tookDmgSinceKill=true;e.atkTimer=1.2/e.spd;
         if(e.dotOnHit){applyDot(G,e.dotOnHit.type,e.dotOnHit.dmg,e.dotOnHit.dur);}
         if(e.poisonOnHit){applyDot(G,e.poisonOnHit.type,e.poisonOnHit.dmg,e.poisonOnHit.dur);}
         const soh=e.slowOnHit||0;if(soh>0){G.slow=(G.slow||0)+soh;setTimeout(()=>{G.slow=Math.max(0,(G.slow||0)-soh);},3000);}
@@ -268,6 +307,7 @@ function updateEnemies(dt){
   }
 }
 function handleDeath(){
+  if(typeof SFX!=='undefined')SFX.death();
   addLog('💀 DÉFAITE — Retour à la Vague 1…','log-warn');
   showWaveNotif('DÉFAITE');
   // Brief pause then full reset
@@ -292,4 +332,4 @@ function handleDeath(){
   },2500);
 }
 
-function updateParticles(dt){for(let i=state.particles.length-1;i>=0;i--){const p=state.particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=.05;p.life-=dt;if(p.life<=0)state.particles.splice(i,1);}}
+// updateParticles now in spawnPart pool above

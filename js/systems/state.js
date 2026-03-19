@@ -22,7 +22,7 @@ const state={
     cdReduction:0,mpRegen:2,hpRegen:1,
     upgrades:{}, // id→level
   },
-  enemies:[],particles:[],inventory:[],activeSpells:[],lootMarkers:[],
+  enemies:[],inventory:[],activeSpells:[],lootMarkers:[],
   wave:1,score:0,waveTimer:3,waveDelay:5,waveActive:false,totalKills:0,
   totalCrits:0,bossKills:0,maxWave:0,totalGoldEarned:0,noHitKills:0,_lastHitWave:0,
 };
