@@ -7,6 +7,7 @@ function updateUI(){
   document.getElementById('gold-val').textContent=G.gold+' G';
   document.getElementById('wave-num').textContent=state.wave;
   const ssc=document.getElementById('spell-slot-count');if(ssc)ssc.textContent=state.golem.spellSlotsMax||4;
+  const imax=document.getElementById('inv-max');if(imax)imax.textContent=state.golem.invMaxSlots||24;
   // Resistances
   const G2=state.golem;
   const rf=document.getElementById('r-fire');if(rf)rf.textContent=(G2.resFire||0)+'%';
@@ -101,9 +102,10 @@ function renderSpells(){
 }
 function renderInventory(){
   const grid=document.getElementById('inv-grid');
+  const invMax=(state.golem.invMaxSlots||24);
   document.getElementById('inv-count').textContent=state.inventory.length;
   let html='';
-  for(let i=0;i<24;i++){
+  for(let i=0;i<invMax;i++){
     const item=state.inventory[i];
     if(item){
       const affixDot = item.affixes&&item.affixes.length>0 ? '<div class="affix-dot"></div>' : '';
