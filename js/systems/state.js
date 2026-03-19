@@ -18,6 +18,7 @@ const state={
     equipped:{head:null,body:null,arm1:null,arm2:null,belt:null,boots:null},
     equippedSpells:[null,null,null,null],
     spellSlotsMax:4,
+    invMaxSlots:24,
     baseStats:{...JSON.parse(JSON.stringify(BASE_STATS)),...BASE_RES},
     cdReduction:0,mpRegen:2,hpRegen:1,
     upgrades:{}, // id→level
