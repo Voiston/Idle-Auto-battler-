@@ -35,6 +35,14 @@ const SPELL_DEFS=[
   {id:'bloodpact',  name:'Pacte de Sang',   icon:'🩸',desc:'Passif: +15% DMG mais -5% HP/s tant quactif',         type:'passive',cd:0, mp:0, lvl:5,tag:'passive'},
   {id:'earthquake', name:'Séisme Massif',   icon:'🌍',desc:'Tremblement géant: 400% ATK+STR à tout écran',          type:'active', cd:18,mp:30,lvl:7,dmgMult:4.0,tag:'aoe'},
   {id:'soulstorm',  name:'Tempête des Âmes',icon:'👻',desc:'Invoque 5 âmes qui traquent les ennemis 180% INT chacune',type:'active',cd:16,mp:25,lvl:6,dmgMult:1.8,tag:'aoe'},
+
+  // ══ SORTS DIABLO v5 ══════════════════════════════════════════════════
+  {id:'hydra',      name:'Hydre de Feu',    icon:'🐲',desc:'Invoque une hydre qui crache du feu 3× (220% INT chacun)',       type:'active', cd:14,mp:22,lvl:5, dmgMult:2.2, tag:'active'},
+  {id:'archon',     name:'Mode Archonte',   icon:'🌟',desc:'Transcende en Archonte 10s: ATK×3, sorts gratuits, immunité DoT',type:'active', cd:45,mp:0,  lvl:8, tag:'active'},
+  {id:'chainHook',  name:'Crochet de Chaine',icon:'⛓️',desc:'Attire 3 ennemis au corps-à-corps + 120% ATK chacun',          type:'active', cd:8, mp:15,lvl:4, dmgMult:1.2, tag:'aoe'},
+  {id:'necroArmor', name:"Armure d'Os",    icon:'🦴',desc:'Passif: DEF +50% tant que HP > 50%, +100% si HP < 25%',         type:'passive',cd:0, mp:0,  lvl:5, tag:'passive'},
+  {id:'starPact',   name:'Pacte Stellaire', icon:'⭐',desc:'Chaque ennemi tué dans les 5s suivantes génère une étoile (500% INT)',type:'active',cd:20,mp:28,lvl:7,dmgMult:5.0,tag:'active'},
+  {id:'wraithForm', name:'Forme Spectre',   icon:'👁️',desc:'Deviens intangible 6s: esquive tout, DOT halted, vitesse×2',    type:'active', cd:30,mp:20,lvl:6, tag:'active'},
   {id:'sacrifice', name:'Sacrifice',       icon:'🩹',desc:'Consomme 25% HP pour soigner 80% HP max',        type:'active', cd:30,mp:0, lvl:6,tag:'active'},
 ];
 const ITEMS=[
@@ -125,6 +133,23 @@ const ITEMS=[
   {id:'sc18',name:'Parchemin: Teleport',   icon:'📜',slot:null,  rarity:'epic',     stats:{},spell:'blink'},
   {id:'sc19',name:'Parchemin: Sacrifice',  icon:'📜',slot:null,  rarity:'legendary',stats:{},spell:'sacrifice'},
 
+
+  // ══ ITEMS DIABLO v5 — 12 nouveaux ════════════════════════════════════
+  // Rare — builds variés
+  {id:'di1', name:'Oeil du Chasseur',    icon:'👁️',slot:'head', rarity:'rare',     stats:{crit:10,atk:8,spd:3}},
+  {id:'di2', name:'Ceinture de Sang',   icon:'🩸',slot:'belt', rarity:'rare',     stats:{str:8,atk:7,hp:20}},
+  {id:'di3', name:'Sandales du Démon',  icon:'👿',slot:'boots',rarity:'rare',     stats:{spd:6,crit:5,str:4}},
+  {id:'di4', name:'Griffes Spectres',   icon:'👻',slot:'arm1', rarity:'rare',     stats:{atk:9,int:5,crit:7}},
+  // Epic — spécialisés
+  {id:'di5', name:'Oeil de Horus',      icon:'🦅',slot:'head', rarity:'epic',     stats:{crit:14,int:10,mp:18}},
+  {id:'di6', name:'Manteau du Démon',   icon:'😈',slot:'body', rarity:'epic',     stats:{str:12,atk:10,rfire:20,hp:30}},
+  {id:'di7', name:'Gants du Nécromant', icon:'💀',slot:'arm1', rarity:'epic',     stats:{int:14,def:8,mp:22,crit:8}},
+  {id:'di8', name:'Lame Maudite',       icon:'🗡️',slot:'arm2', rarity:'epic',     stats:{atk:20,str:10,crit:12,rvoid:10}},
+  // Legendary — builds iconiques Diablo
+  {id:'di9', name:'Hache du Bourreau',  icon:'🪓',slot:'arm2', rarity:'legendary',stats:{atk:30,str:20,crit:10,spd:2}},
+  {id:'di10',name:'Anneau de Mephisto', icon:'💍',slot:'belt', rarity:'legendary',stats:{int:20,mp:30,crit:15,rvoid:20}},
+  {id:'di11',name:'Casque de Diablo',   icon:'🔴',slot:'head', rarity:'legendary',stats:{str:18,int:18,def:12,crit:12,rfire:20}},
+  {id:'di12',name:'Arrêt du Temps',     icon:'⌛',slot:'boots',rarity:'legendary',stats:{spd:10,crit:20,atk:12,int:10}},
   // ══ SET ITEMS ══════════════════════════════════════════════════════
   // ── Set 1: Fureur du Berserker ─────────────────────────────────────
   {id:'sb1',name:'Heaume du Berserker',   icon:'💢',slot:'head', rarity:'legendary',setId:'berserker_set',stats:{str:15,atk:12,crit:10}},
@@ -148,6 +173,13 @@ const ITEMS=[
   {id:'sv1',name:'Masque du Vide',        icon:'🌑',slot:'head', rarity:'legendary',setId:'void_set',stats:{int:14,rvoid:30,crit:12,mp:20}},
   {id:'sv2',name:'Manteau du Neant',      icon:'🌀',slot:'body', rarity:'legendary',setId:'void_set',stats:{int:18,rvoid:25,def:10,hp:25}},
   {id:'sv3',name:'Lame du Vide',          icon:'💀',slot:'arm2', rarity:'legendary',setId:'void_set',stats:{atk:20,int:12,rvoid:20,crit:10}},
+
+  // ── Set 5: Foudre de Tal Rasha (élémentaire) ─────────────────────
+  {id:'tr1',name:'Amulette de Tal Rasha', icon:'🔆',slot:'belt', rarity:'legendary',setId:'talrasha_set',stats:{int:16,mp:22,rfire:12,rice:12,rvoid:12}},
+  {id:'tr2',name:'Masque de Tal Rasha',   icon:'💠',slot:'head', rarity:'legendary',setId:'talrasha_set',stats:{int:20,crit:12,mp:28}},
+  {id:'tr3',name:'Orbe de Tal Rasha',     icon:'🌐',slot:'arm1', rarity:'legendary',setId:'talrasha_set',stats:{int:18,atk:8,mp:20,crit:10}},
+  {id:'tr4',name:'Armure de Tal Rasha',   icon:'✴️',slot:'body', rarity:'legendary',setId:'talrasha_set',stats:{int:22,def:10,hp:30,rfire:15,rice:15,rvoid:15}},
+  {id:'tr5',name:'Bottes de Tal Rasha',   icon:'⚡',slot:'boots',rarity:'legendary',setId:'talrasha_set',stats:{spd:6,int:14,mp:18,crit:8}},
   {id:'sv4',name:'Sanges du Neant',       icon:'🩻',slot:'boots',rarity:'legendary',setId:'void_set',stats:{spd:8,rvoid:25,int:10,crit:8}},
 
   // ── Scrolls nouveaux sorts ─────────────────────────────────────────
@@ -171,22 +203,5 @@ function getLootWeights(wave){
   };
 }
 const RW={common:45,uncommon:30,rare:17,epic:6,legendary:2}; // kept for reference
-const ETYPES={
-  grunt: {hp:30,dmg:5, spd:.9, range:1.2,xp:15,gold:3,threat:1,name:'Grunt',     draw:drawGrunt},
-  slime: {hp:20,dmg:3, spd:1.1,range:1.0,xp:10,gold:2,threat:1,name:'Slime',     draw:drawSlime},
-  archer:{hp:25,dmg:8, spd:.7, range:3.5,xp:20,gold:4,threat:2,name:'Archer',draw:drawArcher},
-  brute: {hp:80,dmg:14,spd:.55,range:1.5,xp:40,gold:8,threat:3,name:'Brute', draw:drawBrute},
-  wraith:   {hp:45,dmg:10,spd:1.3,range:1.2,xp:35,gold:7, threat:2,name:'Spectre',  draw:drawWraith},
-  // ── Biome Abyssal ──
-  frostshade:      {hp:55, dmg:12,spd:1.4,range:1.2,xp:50,gold:11,threat:2,name:'Spectre Givré', draw:drawFrostShade,    dotOnHit:{type:'void',dmg:4,dur:3}, slowOnHitVal:.3},
-  abyssalbehemoth: {hp:200,dmg:30,spd:.45,range:1.6,xp:100,gold:25,threat:5,name:'Béhémoth Abyssal',draw:drawAbyssalBehemoth,dotOnHit:{type:'void',dmg:10,dur:5}},
-  voidarcher:      {hp:40, dmg:20,spd:.7, range:4.5,xp:60,gold:14,threat:3,name:'Archer du Vide',  draw:drawVoidArcher,    dotOnHit:{type:'void',dmg:7,dur:4}},
-  glacialgolem:    {hp:150,dmg:22,spd:.5, range:1.5,xp:80,gold:20,threat:4,name:'Golem Glacial',   draw:drawGlacialGolem,  slowOnHitVal:.4},
-  // ── Biome Volcanique ──
-  lavabrute:{hp:120,dmg:22,spd:.5, range:1.6,xp:65,gold:15,threat:4,name:'Brute de Lave',draw:drawLavaBrute, dotOnHit:{type:'burn',dmg:4,dur:3}},
-  ember:    {hp:25, dmg:12,spd:1.5,range:1.0,xp:30,gold:8, threat:2,name:'Tison',        draw:drawEmber,     dotOnHit:{type:'burn',dmg:3,dur:2}},
-  ashwraith:{hp:60, dmg:15,spd:1.2,range:1.3,xp:55,gold:12,threat:3,name:'Spectre Cendre',draw:drawAshWraith,dotOnHit:{type:'burn',dmg:5,dur:4}},
-  scorcher: {hp:35, dmg:18,spd:.75, range:4.0,xp:45,gold:10,threat:2,name:'Carboniseur',  draw:drawScorcher,  dotOnHit:{type:'burn',dmg:6,dur:3}},
-};
 const STAT_MAP={str:'str',int:'int',spd:'spd',def:'def',atk:'atkDmg',crit:'critChance',hp:'maxHp',mp:'maxMp',rfire:'resFire',rice:'resIce',rvoid:'resVoid'};
 const STAT_LABELS={str:'STR',int:'INT',spd:'SPD',def:'DEF',atk:'ATK',crit:'CRIT',hp:'HP MAX',mp:'MP MAX',rfire:'Rés. Feu',rice:'Rés. Glace',rvoid:'Rés. Vide'};
