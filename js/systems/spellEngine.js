@@ -517,4 +517,3 @@ function castSpell(def,s,G,cdMult=1){
     },400);
   }
 }
-
