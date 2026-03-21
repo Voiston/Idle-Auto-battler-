@@ -273,9 +273,9 @@ function killEnemy(enemy){
   state.golem.xp+=enemy.xp;state.golem.gold+=goldDrop;state.totalGoldEarned=(state.totalGoldEarned||0)+goldDrop;
   state.score+=enemy.xp*2;state.totalKills++;
   addLog(`💀 ${enemy.name} +${enemy.xp}XP +${enemy.gold}G`,'log-loot');
-  if(enemy.isElite){
-    // Elite guaranteed rare+ drop
-    const elRar=Math.random()<.15?'epic':Math.random()<.4?'rare':'uncommon';
+  if(enemy.isElite && Math.random()<.10){
+    // Elite rare+ drop (10% chance)
+    const elRar=Math.random()<.015?'epic':Math.random()<.04?'rare':'uncommon';
     const elPool=ITEMS.filter(i=>i.rarity===elRar);
     if(elPool.length&&state.inventory.length<24){
       const tmpl=elPool[Math.floor(Math.random()*elPool.length)];
@@ -286,7 +286,7 @@ function killEnemy(enemy){
     // Mark loot
     if(elRar==='epic'||elRar==='legendary'){state.lootMarkers.push({x:p.x,y:p.y,color:enemy.eliteColor||'#ab47bc',icon:'✨',life:8,maxLife:8});}
   }
-  if(Math.random()<.011)dropItem(p.x,p.y,state.wave);
+  if(Math.random()<.0011)dropItem(p.x,p.y,state.wave);
   state.enemies=state.enemies.filter(e=>e!==enemy);
   checkLevelUp();checkAchievements();updateUI();renderUpgrades();
 }
@@ -324,8 +324,8 @@ function updateEnemies(dt){
     if(e._defShredTimer>0){e._defShredTimer-=0.016;} // approx dt
     if(G._wraithFormActive)return; // intangible — no damage
         const physRed=Math.floor(G.def*.6);let dmg=Math.max(1,e.dmg-physRed);dmg=Math.floor(dmg*(1-(G.dmgReduction||0)));G.hp-=dmg;G.hitFlash=1;state._tookDmgSinceKill=true;e.atkTimer=1.2/e.spd;
-        if(e.dotOnHit){applyDot(G,e.dotOnHit.type,e.dotOnHit.dmg,e.dotOnHit.dur);}
-        if(e.poisonOnHit){applyDot(G,e.poisonOnHit.type,e.poisonOnHit.dmg,e.poisonOnHit.dur);}
+        if(e.dotOnHit && e.range<=2.0){applyDot(G,e.dotOnHit.type,e.dotOnHit.dmg,e.dotOnHit.dur);}
+        if(e.poisonOnHit && e.range<=2.0){applyDot(G,e.poisonOnHit.type,e.poisonOnHit.dmg,e.poisonOnHit.dur);}
         const soh=e.slowOnHit||0;if(soh>0){G.slow=(G.slow||0)+soh;setTimeout(()=>{G.slow=Math.max(0,(G.slow||0)-soh);},3000);}
         if(e.lifeSteal){const h=Math.floor(dmg*e.lifeSteal);e.hp=Math.min(e.maxHp,e.hp+h);}const p=ISO.toScreen(G.col,G.row);spawnFloat(p.x,p.y-15,`-${dmg}`,'#ef4444');spawnPart(p.x,p.y,4,'#ef4444',2);if(G.hp<=0){G.hp=0;handleDeath();}}}
   }
@@ -349,6 +349,8 @@ function handleDeath(){
     G.gstate='patrol';G.hitFlash=0;
     // Reset spell timers
     for(const s of state.activeSpells){s.timer=0;}
+    // Clear all DoTs on golem
+    G.dots=[];
     // Update UI
     updateUI();
     addLog('⚡ Ressuscité — Vague 1','log-spell');
